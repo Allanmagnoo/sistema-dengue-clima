@@ -1,0 +1,11 @@
+
+# Astro Runtime default dependencies...
+apache-airflow-providers-http
+apache-airflow-providers-amazon
+pandas
+requests
+boto3
+pyspark
+matplotlib
+seaborn
+jupyter

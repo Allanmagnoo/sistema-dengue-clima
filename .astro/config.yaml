@@ -1,0 +1,6 @@
+postgres:
+    port: "5430"
+project:
+    name: eco-sentinel
+webserver:
+    port: "8081"
