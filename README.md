@@ -1,11 +1,10 @@
 # 🦟 Sistema Dengue-Clima: Data Lakehouse Epidemiológico
 
-> **Status:** Em Desenvolvimento 🚧
-> **Stack:** Python, Airflow (Astronomer), Spark, AWS (Simulado Localmente), Docker.
+> **Status:** Em Desenvolvimento (Fase de Implementação na AWS) 🚧
+> **Stack:** Python, Airflow (Astronomer), Spark, AWS (S3, Glue, Athena), Docker.
 
 ## 1. Visão do Projeto (Business Case)
-O **Sistema Dengue-Clima** é uma plataforma de Engenharia de Dados projetada para correlacionar dados epidemiológicos (Dengue, Zika) com dados climáticos (Chuva, Temperatura) em tempo real.
-O objetivo é fornecer uma base de dados analítica (Gold Layer) para prever surtos de arboviroses baseados em padrões meteorológicos.
+O **Sistema Dengue-Clima** é uma plataforma de Engenharia de Dados projetada para correlacionar dados epidemiológicos (Dengue, Zika) com dados climáticos (Chuva, Temperatura). O objetivo é fornecer uma base de dados analítica (Gold Layer) para prever surtos de arboviroses baseados em padrões meteorológicos, utilizando uma arquitetura de Lakehouse na AWS.
 
 **Fontes de Dados:**
 1.  **InfoDengue API** (Dados epidemiológicos semanais).
@@ -13,45 +12,69 @@ O objetivo é fornecer uma base de dados analítica (Gold Layer) para prever sur
 
 ---
 
-## 2. Arquitetura Técnica (Medallion)
+## 2. Escopo e Objetivos
+O escopo do projeto é construir um pipeline de dados ponta a ponta, desde a ingestão de dados brutos até a camada de agregação, pronta para consumo por ferramentas de Business Intelligence e Machine Learning.
 
-O projeto segue a arquitetura Medalhão (Lakehouse):
-
-| Camada | Formato | Descrição |
-| :--- | :--- | :--- |
-| **Bronze** | JSON (Raw) | Dados brutos extraídos das APIs. Imutáveis. Particionados por `source/year`. |
-| **Silver** | Parquet | Dados limpos, tipados, deduplicados e enriquecidos. Schema enforcement aplicado. |
-| **Gold** | Parquet | Dados agregados (KPIs). Tabela única (One Big Table) pronta para Dashboards. |
-
-**Infraestrutura:**
-* **Orquestração:** Apache Airflow 2.x (via Astro CLI).
-* **Containerização:** Docker.
-* **Linguagem:** Python 3.9+.
+**Objetivos:**
+- **Ingestão Automatizada:** Coletar dados de forma programada e confiável.
+- **Arquitetura Lakehouse:** Implementar as camadas Bronze, Silver e Gold em um Data Lake na AWS.
+- **Qualidade de Dados:** Garantir que os dados sejam limpos, consistentes e prontos para análise.
+- **Escalabilidade:** Construir uma solução que suporte o crescimento do volume de dados.
+- **Análise de Dados:** Permitir a correlação entre dados de dengue e clima para gerar insights.
 
 ---
 
-## 3. Guia de Configuração (Quick Start)
+## 3. Funcionalidades Implementadas
+- **Orquestração de DAGs com Airflow:** Pipelines de ingestão e processamento de dados.
+- **Arquitetura Medallion Local:** Estrutura de dados em camadas (Bronze, Silver, Gold) simulada localmente.
+- **Ingestão de Dados:** Conectores para as APIs do InfoDengue e INMET.
+- **Processamento de Dados:** Scripts para limpeza, transformação e enriquecimento dos dados.
+- **Containerização:** Ambiente de desenvolvimento local com Docker e Astro CLI.
 
-### Pré-requisitos
-* Docker Desktop (Running)
-* Astro CLI instalado
-* Python 3.9+
+---
 
-### Instalação
+## 4. Próximas Etapas e Tarefas Pendentes
+- **Migração para AWS:**
+    - Configurar o armazenamento de dados no Amazon S3 para as camadas do Lakehouse.
+    - Adaptar os pipelines de dados para usar AWS Glue para ETL.
+    - Utilizar o Amazon Athena para consultas ad-hoc na camada Gold.
+- **Melhorias nos Conectores:**
+    - Implementar lógica de retentativas (retry) e tratamento de erros nos conectores de API.
+- **Monitoramento e Alertas:**
+    - Configurar alertas para falhas nos pipelines de dados.
+- **Documentação:**
+    - Detalhar o dicionário de dados da camada Gold.
+
+---
+
+## 5. Requisitos do Sistema e Dependências
+- **Desenvolvimento Local:**
+    - Docker Desktop
+    - Astro CLI
+    - Python 3.9+
+- **Produção (AWS):**
+    - Conta na AWS
+    - Serviços: S3, Glue, Athena
+
+---
+
+## 6. Instruções de Configuração e Execução
+
+### Ambiente de Desenvolvimento Local
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/Allanmagnoo/sistema-dengue-clima.git](https://github.com/Allanmagnoo/sistema-dengue-clima.git)
+    git clone https://github.com/Allanmagnoo/sistema-dengue-clima.git
     cd sistema-dengue-clima
     ```
 
-2.  **Inicie o Ambiente Local:**
+2.  **Inicie o Ambiente Local com Airflow:**
     ```bash
     astro dev start
     ```
-    *Acesse o Airflow UI em: `http://localhost:8080` (User: admin / Pass: admin)*
+    Acesse a interface do Airflow em: `http://localhost:8080` (usuário: `admin`, senha: `admin`).
 
-3.  **Instale dependências locais (para desenvolvimento no VS Code):**
+3.  **Instale as dependências locais para desenvolvimento:**
     ```bash
     python -m venv .venv
     source .venv/bin/activate  # ou .venv\Scripts\activate no Windows
@@ -60,47 +83,7 @@ O projeto segue a arquitetura Medalhão (Lakehouse):
 
 ---
 
-## 4. Roadmap de Execução (Step-by-Step)
-
-### FASE 1: Ingestão (Bronze Layer) 🛠️
-- [ ] **Configurar Conectores**: Implementar scripts em `src/connectors/` com retry logic.
-    - `infodengue_api.py`: Busca dados por geocode/ano.
-    - `inmet_api.py`: Busca dados de estações automáticas.
-- [ ] **Criar DAGs de Ingestão**:
-    - `dags/ingest_dengue_historical.py`: Backfill de 5 anos.
-    - `dags/ingest_daily_weather.py`: Execução diária (D-1).
-- [ ] **Validar Bronze**: Verificar se os JSONs estão sendo salvos em `data/bronze/`.
-
-### FASE 2: Refinamento (Silver Layer) 🧹
-- [ ] **Processamento Spark/Pandas**:
-    - Ler JSONs da Bronze.
-    - Tratamento de Tipagem (String -> Date/Float).
-    - Limpeza de Outliers (Ex: Temperaturas > 60°C).
-- [ ] **Escrita Parquet**: Salvar em `data/silver` particionado por `UF`.
-
-### FASE 3: Agregação (Gold Layer) 📊
-- [ ] **Regras de Negócio**:
-    - Agregar Clima (Horário) -> Semanal (Média/Máx/Mín).
-    - Join `Dengue` + `Clima` via chaves `Geocode` e `Semana Epidemiológica`.
-- [ ] **Criação de Features**:
-    - Calcular *Lags* (Chuva de 2 semanas atrás).
-
-### FASE 4: Visualização 📈
-- [ ] Conectar ferramenta de Data Viz (Streamlit ou Metabase) ao Data Lake.
-- [ ] Criar Gráfico de Correlação (Curva de Chuva x Curva de Casos).
-
----
-
-## 5. Estrutura de Diretórios
-
-```text
-sistema-dengue-clima/
-├── dags/                  # Pipelines do Airflow
-├── data/                  # Data Lake Local (Gitignored)
-├── include/               # Arquivos de config auxiliares
-├── src/                   # Lógica de Negócio (ETL Core)
-│   ├── connectors/        # Scripts de extração
-│   └── common/            # Logs e Utilitários
-├── tests/                 # Testes Unitários
-├── Dockerfile             # Configuração da imagem Astro
-└── requirements.txt       # Libs Python do Airflow
+## 7. Equipe e Contatos
+- **Desenvolvedor Principal:** Allan Magno
+- **Contato:** allanmagno@gmail.com
+- **GitHub:** [https://github.com/Allanmagnoo](https://github.com/Allanmagnoo)
