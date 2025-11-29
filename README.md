@@ -1,10 +1,10 @@
-# 🦟 Eco-Sentinel: Data Lakehouse Epidemiológico
+# 🦟 Sistema Dengue-Clima: Data Lakehouse Epidemiológico
 
 > **Status:** Em Desenvolvimento 🚧
 > **Stack:** Python, Airflow (Astronomer), Spark, AWS (Simulado Localmente), Docker.
 
 ## 1. Visão do Projeto (Business Case)
-O **Eco-Sentinel** é uma plataforma de Engenharia de Dados projetada para correlacionar dados epidemiológicos (Dengue, Zika) com dados climáticos (Chuva, Temperatura) em tempo real.
+O **Sistema Dengue-Clima** é uma plataforma de Engenharia de Dados projetada para correlacionar dados epidemiológicos (Dengue, Zika) com dados climáticos (Chuva, Temperatura) em tempo real.
 O objetivo é fornecer uma base de dados analítica (Gold Layer) para prever surtos de arboviroses baseados em padrões meteorológicos.
 
 **Fontes de Dados:**
@@ -41,8 +41,8 @@ O projeto segue a arquitetura Medalhão (Lakehouse):
 
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/seu-usuario/eco-sentinel.git](https://github.com/seu-usuario/eco-sentinel.git)
-    cd eco-sentinel
+    git clone [https://github.com/Allanmagnoo/sistema-dengue-clima.git](https://github.com/Allanmagnoo/sistema-dengue-clima.git)
+    cd sistema-dengue-clima
     ```
 
 2.  **Inicie o Ambiente Local:**
@@ -94,7 +94,7 @@ O projeto segue a arquitetura Medalhão (Lakehouse):
 ## 5. Estrutura de Diretórios
 
 ```text
-eco-sentinel/
+sistema-dengue-clima/
 ├── dags/                  # Pipelines do Airflow
 ├── data/                  # Data Lake Local (Gitignored)
 ├── include/               # Arquivos de config auxiliares

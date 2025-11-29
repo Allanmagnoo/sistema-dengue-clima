@@ -1,7 +1,8 @@
 import duckdb
+import pathlib
 
 # Path to Silver (where assertions failed)
-SILVER_PATH = r"D:\_data-science\GitHub\eco-sentinel\data\silver\inmet"
+SILVER_PATH = str(pathlib.Path(__file__).parent.parent.parent / "data" / "silver" / "inmet")
 
 con = duckdb.connect()
 

@@ -1,8 +1,9 @@
 import duckdb
+import pathlib
 import glob
 import os
 
-base_dir = r"D:\_data-science\GitHub\eco-sentinel\data\bronze\inmet"
+base_dir = str(pathlib.Path(__file__).parent.parent.parent / "data" / "bronze" / "inmet")
 files = glob.glob(os.path.join(base_dir, "**/*.CSV"), recursive=True)
 print(f"Found {len(files)} files.")
 if files:

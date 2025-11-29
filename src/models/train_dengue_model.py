@@ -13,7 +13,7 @@ def main():
     print("🤖 Iniciando Modelo Preditivo de Dengue com Random Forest")
     
     # Paths
-    base_dir = Path(r"D:\_data-science\GitHub\eco-sentinel")
+    base_dir = Path(__file__).parent.parent.parent
     gold_file = base_dir / "data/gold/dengue_clima.parquet"
     model_dir = base_dir / "models"
     model_dir.mkdir(exist_ok=True)
@@ -108,7 +108,7 @@ def main():
     joblib.dump(rf_model, model_path)
     print(f"\n💾 Modelo salvo em: {model_path}")
     
-    # Save predictions for dashboard
+    # Save predictions for analysis
     predictions_df = model_df[~train_mask].copy()
     predictions_df['predicted_cases'] = y_pred_test
     predictions_df['actual_cases'] = y_test

@@ -1,9 +1,10 @@
 import duckdb
+import pathlib
 import glob
 import os
 
 # Path to Bronze
-BRONZE_PATH = r"D:\_data-science\GitHub\eco-sentinel\data\bronze\inmet"
+BRONZE_PATH = str(pathlib.Path(__file__).parent.parent.parent / "data" / "bronze" / "inmet")
 
 con = duckdb.connect()
 

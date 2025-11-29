@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 def setup_project():
-    project_name = "eco-sentinel"
+    project_name = "sistema-dengue-clima"
     base_path = Path(".")
 
     # Estrutura de Diretórios (Híbrida: Astro + Data Engineering)
@@ -47,10 +47,10 @@ def setup_project():
     
     # 3. Atualizar .gitignore (Preservar o do Astro e adicionar o nosso)
     gitignore_path = base_path / ".gitignore"
-    custom_ignores = "\n\n# --- ECO-SENTINEL CUSTOM ---\ndata/\n.env\n.vscode/\n__pycache__/\n*.parquet\n*.json\n"
+    custom_ignores = "\n\n# --- SISTEMA DENGUE-CLIMA CUSTOM ---\ndata/\n.env\n.vscode/\n__pycache__/\n*.parquet\n*.json\n"
     
     current_content = gitignore_path.read_text() if gitignore_path.exists() else ""
-    if "ECO-SENTINEL" not in current_content:
+    if "SISTEMA DENGUE-CLIMA" not in current_content:
         with open(gitignore_path, "a") as f:
             f.write(custom_ignores)
         print("🛡️ .gitignore atualizado.")
