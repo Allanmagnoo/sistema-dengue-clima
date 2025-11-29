@@ -1,5 +1,5 @@
 """
-📊 RELATÓRIO DE IMPACTO SOCIAL E GOVERNAMENTAL - ECO-SENTINEL (V2 - Otimizado)
+📊 RELATÓRIO DE IMPACTO SOCIAL E GOVERNAMENTAL - SISTEMA DENGUE-CLIMA (V2 - Otimizado)
 ------------------------------------------------------------------------------
 Ajustes: Uso de 'casos_notificados' para maior cobertura e filtros climáticos ajustados.
 """

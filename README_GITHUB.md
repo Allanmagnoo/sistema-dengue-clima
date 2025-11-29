@@ -14,7 +14,7 @@ O **Mosquito Sentinel** é uma plataforma avançada de engenharia de dados que c
 ### 🎯 Objetivos Principais
 - **Previsão Precoce**: Detectar padrões de surtos 2-4 semanas antes do pico
 - **Correlação Climática**: Analisar impacto de chuva, temperatura e umidade na proliferação do Aedes aegypti
-- **Monitoramento Inteligente**: Dashboards interativos com alertas de risco por região
+- **Monitoramento Inteligente**: Análises preditivas com alertas de risco por região
 - **Decisão Data-Driven**: Apoiar políticas públicas baseadas em análises preditivas
 
 ## 🏗️ Arquitetura Técnica
@@ -117,14 +117,14 @@ mosquito-sentinel/
 │   ├── connectors/         # APIs INMET/InfoDengue
 │   ├── jobs/              # Transformações Silver/Gold
 │   ├── models/            # ML Training & Inference
-│   └── dashboard/         # Visualizações Streamlit
+│   └── analysis/          # Análises e relatórios
 ├── data/                  # Lakehouse local (gitignored)
 ├── tests/                 # Testes unitários
 ├── notebooks/             # Análises exploratórias
 └── docker/               # Configurações Docker
 ```
 
-## 🔍 Análises e Dashboards
+## 🔍 Análises e Relatórios
 
 ### 📊 KPIs Monitorados
 - **Índice de Risco**: Score 0-100 por cidade/semana
@@ -132,7 +132,7 @@ mosquito-sentinel/
 - **Suscetibilidade Climática**: Correlação tempo x epidemia
 - **Alerta Precoce**: Sinais de surto 2-4 semanas antes
 
-### 🗺️ Visualizações
+### 🗺️ Análises
 - **Mapa de Calor**: Distribuição geográfica de riscos
 - **Séries Temporais**: Tendências históricas e projeções
 - **Correlações**: Scatter plots clima vs. casos
