@@ -1,4 +1,5 @@
 import duckdb
+import duckdb
 import logging
 from pathlib import Path
 
@@ -19,12 +20,26 @@ def main():
     
     GOLD_PATH.mkdir(parents=True, exist_ok=True)
     
+    # --- Step 0: Check Mapping Table ---
+    if not MAPPING_TABLE_PATH.exists():
+        logger.info("⚠️ Mapping table not found. Creating it now...")
+        try:
+            # Import and run the mapping creation script
+            import sys
+            sys.path.append(str(current_dir))
+            from create_mapping_estacao_geocode import main as create_mapping
+            create_mapping()
+            logger.info("✅ Mapping table created.")
+        except Exception as e:
+            logger.error(f"❌ Failed to create mapping table: {e}")
+            return
+
     con = duckdb.connect(database=':memory:')
     
     # --- Step 1: Load Data ---
     logger.info("📖 Step 1: Reading Silver layer data...")
     
-    # Read INMET data (recursively with hive partitioning)
+    # Read INMET data
     con.execute(f"""
         CREATE VIEW silver_inmet AS 
         SELECT * 
@@ -55,20 +70,22 @@ def main():
             i.data_medicao,
             i.temperatura_c,
             i.precipitacao_mm,
-            CAST(m.geocode AS BIGINT) as geocode  -- Ensure BIGINT match
+            CAST(m.geocode AS BIGINT) as geocode
         FROM silver_inmet i
         INNER JOIN mapping_table m ON i.estacao_id = m.estacao_id
         WHERE i.data_medicao IS NOT NULL
     """)
     
     # 2.2 Calculate Epidemiological Week for Climate Data
-    # MATCHING FORMAT: YYYYWW (e.g., 202401)
+    # Using ISO week for alignment. 
+    # Note: InfoDengue SE might differ slightly, but this is the standard approx.
+    # We create a 'join_key' = YYYYWW
     
     con.execute("""
         CREATE TABLE inmet_weekly AS
         SELECT 
             geocode,
-            CAST(year(data_medicao) * 100 + week(data_medicao) AS INTEGER) as semana_epidemiologica,
+            CAST(year(data_medicao) * 100 + week(data_medicao) AS INTEGER) as join_key,
             MIN(data_medicao) as data_inicio_semana_clim,
             AVG(temperatura_c) as inmet_temp_media,
             MIN(temperatura_c) as inmet_temp_min,
@@ -85,22 +102,29 @@ def main():
         CREATE TABLE inmet_lags AS
         SELECT 
             *,
-            LAG(inmet_temp_media, 1) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_temp_media_lag1,
-            LAG(inmet_temp_media, 2) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_temp_media_lag2,
-            LAG(inmet_temp_media, 3) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_temp_media_lag3,
-            LAG(inmet_temp_media, 4) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_temp_media_lag4,
+            LAG(inmet_temp_media, 1) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_temp_media_lag1,
+            LAG(inmet_temp_media, 2) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_temp_media_lag2,
+            LAG(inmet_temp_media, 3) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_temp_media_lag3,
+            LAG(inmet_temp_media, 4) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_temp_media_lag4,
             
-            LAG(inmet_precip_tot, 1) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_precip_tot_lag1,
-            LAG(inmet_precip_tot, 2) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_precip_tot_lag2,
-            LAG(inmet_precip_tot, 3) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_precip_tot_lag3,
-            LAG(inmet_precip_tot, 4) OVER (PARTITION BY geocode ORDER BY semana_epidemiologica) as inmet_precip_tot_lag4
+            LAG(inmet_precip_tot, 1) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_precip_tot_lag1,
+            LAG(inmet_precip_tot, 2) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_precip_tot_lag2,
+            LAG(inmet_precip_tot, 3) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_precip_tot_lag3,
+            LAG(inmet_precip_tot, 4) OVER (PARTITION BY geocode ORDER BY join_key) as inmet_precip_tot_lag4
         FROM inmet_weekly
     """)
 
     # --- Step 4: Main Join ---
     logger.info("🔗 Step 4: Joining Dengue and Climate Data...")
     
-    # We join on geocode and semana_epidemiologica (YYYYWW)
+    # Prepare Dengue with compatible join_key
+    con.execute("""
+        CREATE VIEW dengue_prepared AS
+        SELECT 
+            *,
+            CAST(ano_epidemiologico * 100 + semana_epidemiologica AS INTEGER) as join_key
+        FROM silver_dengue
+    """)
     
     query_join = """
     CREATE TABLE gold_final AS
@@ -140,11 +164,11 @@ def main():
         c.inmet_precip_tot_lag3,
         c.inmet_precip_tot_lag4
         
-    FROM silver_dengue d
+    FROM dengue_prepared d
     LEFT JOIN inmet_lags c 
         ON d.geocode = c.geocode 
-        AND d.semana_epidemiologica = c.semana_epidemiologica
-    ORDER BY d.geocode, d.semana_epidemiologica
+        AND d.join_key = c.join_key
+    ORDER BY d.geocode, d.ano_epidemiologico, d.semana_epidemiologica
     """
     
     con.execute(query_join)
@@ -163,15 +187,23 @@ def main():
     
     if climate_rows == 0:
         logger.warning("⚠️ Warning: Still no climate data joined. Checking sample keys...")
-        sample_d = con.execute("SELECT geocode, semana_epidemiologica FROM silver_dengue LIMIT 1").fetchone()
-        sample_c = con.execute("SELECT geocode, semana_epidemiologica FROM inmet_lags LIMIT 1").fetchone()
+        sample_d = con.execute("SELECT geocode, join_key FROM dengue_prepared LIMIT 1").fetchone()
+        sample_c = con.execute("SELECT geocode, join_key FROM inmet_lags LIMIT 1").fetchone()
         logger.info(f"  Sample Dengue Key: {sample_d}")
         logger.info(f"  Sample INMET Key: {sample_c}")
     
-    output_file = GOLD_PATH / 'dengue_clima.parquet'
-    con.execute(f"COPY gold_final TO '{output_file}' (FORMAT PARQUET, OVERWRITE_OR_IGNORE)")
+    # Write partitioned by UF to handle large data
+    output_path = GOLD_PATH / 'dengue_clima_partitioned'
+    con.execute(f"""
+        COPY gold_final TO '{output_path}' (
+            FORMAT PARQUET, 
+            PARTITION_BY (uf), 
+            OVERWRITE_OR_IGNORE 1,
+            COMPRESSION 'SNAPPY'
+        )
+    """)
     
-    logger.info(f"✅ Gold Layer created at: {output_file}")
+    logger.info(f"✅ Gold Layer created at: {output_path}")
     con.close()
 
 if __name__ == "__main__":

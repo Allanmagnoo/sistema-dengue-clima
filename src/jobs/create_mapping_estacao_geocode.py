@@ -1,4 +1,3 @@
-
 import duckdb
 import pandas as pd
 from pathlib import Path
@@ -12,7 +11,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 BRONZE_DIR = DATA_DIR / "bronze"
 SILVER_DIR = DATA_DIR / "silver"
 DTB_FILE_PATH = BRONZE_DIR / "DTB_2024" / "RELATORIO_DTB_BRASIL_2024_MUNICIPIOS.xls"
-INMET_BRONZE_DIR = BRONZE_DIR / "inmet" / "2024"
+INMET_BRONZE_DIR = BRONZE_DIR / "inmet"
 OUTPUT_PATH = SILVER_DIR / "mapping_estacao_geocode.parquet"
 
 def normalize_text(text):
@@ -24,7 +23,7 @@ def normalize_text(text):
     only_ascii = nfkd_form.encode('ASCII', 'ignore').decode('utf-8')
     return only_ascii.lower().strip()
 
-def create_mapping_table():
+def main():
     """
     Cria uma tabela de mapeamento de estacao_id para geocode, tratando inconsistências nos nomes dos municípios.
     """
@@ -35,13 +34,9 @@ def create_mapping_table():
     try:
         df_dtb = pd.read_excel(DTB_FILE_PATH, skiprows=6, usecols=["Nome_Município", "Código Município Completo"])
         # A ordem das colunas lidas pelo usecols pode não ser garantida. Corrigindo a atribuição.
-        df_dtb.columns = ["nome_municipio", "geocode"] # Temporário para manter a estrutura
-        # Verificação e reordenação se necessário
-        if df_dtb.iloc[0]['geocode'].isnumeric():
-            df_dtb.columns = ["nome_municipio", "geocode"]
-        else:
-            df_dtb.columns = ["geocode", "nome_municipio"]
-
+        # Check columns by name instead of assuming order
+        df_dtb = df_dtb.rename(columns={"Nome_Município": "nome_municipio", "Código Município Completo": "geocode"})
+        
         df_dtb["geocode"] = df_dtb["geocode"].astype(str).str.strip()
         df_dtb["nome_municipio_normalizado"] = df_dtb["nome_municipio"].astype(str).apply(normalize_text)
         logger.info(f"{len(df_dtb)} municípios lidos do arquivo DTB.")
@@ -53,19 +48,34 @@ def create_mapping_table():
     logger.info(f"Extraindo metadados das estações do diretório: {INMET_BRONZE_DIR}")
     station_pattern = re.compile(r"INMET_.*?_([A-Z0-9]{4})_(.*?)_\d{2}-\d{2}-\d{4}")
     stations_data = []
-    for file_path in INMET_BRONZE_DIR.glob("*.CSV"):
+    
+    # Use recursive glob to find all CSVs in all years
+    files = list(INMET_BRONZE_DIR.rglob("*.CSV")) + list(INMET_BRONZE_DIR.rglob("*.csv"))
+    
+    seen_stations = set()
+    
+    for file_path in files:
         match = station_pattern.search(file_path.name)
         if match:
             estacao_id = match.group(1)
+            if estacao_id in seen_stations:
+                continue
+                
             nome_municipio_raw = match.group(2).replace("_", " ")
             stations_data.append({
                 "estacao_id": estacao_id,
                 "nome_municipio_inmet": nome_municipio_raw,
                 "nome_municipio_normalizado": normalize_text(nome_municipio_raw)
             })
+            seen_stations.add(estacao_id)
+            
     df_stations = pd.DataFrame(stations_data)
+    if df_stations.empty:
+        logger.warning("Nenhuma estação encontrada!")
+        return
+
     df_stations["nome_municipio_normalizado"] = df_stations["nome_municipio_normalizado"].astype(str)
-    logger.info(f"{len(df_stations)} estações extraídas dos nomes dos arquivos.")
+    logger.info(f"{len(df_stations)} estações únicas extraídas.")
 
     # 3. Juntar as informações para criar o mapeamento final
     logger.info("Juntando informações da DTB e dos metadados das estações.")
@@ -92,4 +102,4 @@ def create_mapping_table():
     logger.info("--- Tabela de mapeamento criada com sucesso! ---")
 
 if __name__ == "__main__":
-    create_mapping_table()
+    main()

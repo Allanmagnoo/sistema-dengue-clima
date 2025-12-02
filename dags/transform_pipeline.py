@@ -6,8 +6,10 @@ import os
 # Define paths for scripts
 # We use relative paths assuming Airflow runs from project root or has access to it
 # In a real Docker setup, these would be absolute paths inside the container
-TRANSFORM_SILVER_SCRIPT = "src/jobs/silver/transform_silver.py"
-TRANSFORM_GOLD_SCRIPT = "src/jobs/gold/transform_gold.py"
+# Scripts reais existentes no projeto
+TRANSFORM_SILVER_DENGUE = "src/jobs/transform_silver_dengue.py"
+TRANSFORM_SILVER_INMET = "src/jobs/transform_silver_inmet.py"
+CREATE_GOLD_DENGUE_CLIMA = "src/jobs/create_gold_dengue_clima.py"
 
 default_args = {
     "owner": "airflow",
@@ -28,18 +30,23 @@ with DAG(
     tags=["spark", "silver", "gold", "transformation"],
 ) as dag:
 
-    # Task 1: Run Silver Transformation (Dengue & INMET)
-    # We use BashOperator to run the python script which invokes Spark
-    task_silver = BashOperator(
-        task_id="transform_silver",
-        bash_command=f"python {TRANSFORM_SILVER_SCRIPT}",
+    # Silver Dengue
+    task_silver_dengue = BashOperator(
+        task_id="transform_silver_dengue",
+        bash_command=f"python {TRANSFORM_SILVER_DENGUE}",
     )
 
-    # Task 2: Run Gold Transformation
+    # Silver INMET
+    task_silver_inmet = BashOperator(
+        task_id="transform_silver_inmet",
+        bash_command=f"python {TRANSFORM_SILVER_INMET}",
+    )
+
+    # Gold Dengue + Clima
     task_gold = BashOperator(
-        task_id="transform_gold",
-        bash_command=f"python {TRANSFORM_GOLD_SCRIPT}",
+        task_id="create_gold_dengue_clima",
+        bash_command=f"python {CREATE_GOLD_DENGUE_CLIMA}",
     )
 
-    # Dependency
-    task_silver >> task_gold
+    # Dependency: primeiro silver (dengue e inmet), depois gold
+    [task_silver_dengue, task_silver_inmet] >> task_gold

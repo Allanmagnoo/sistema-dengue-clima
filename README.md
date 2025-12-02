@@ -8,7 +8,14 @@ O **Sistema Dengue-Clima** é uma plataforma de Engenharia de Dados projetada pa
 
 **Fontes de Dados:**
 1.  **InfoDengue API** (Dados epidemiológicos semanais).
-2.  **INMET API** (Dados meteorológicos horários).
+    *   Histórico: Últimos 10 anos.
+    *   Granularidade: Município/Semana.
+2.  **INMET API** (Dados meteorológicos horários/diários).
+    *   Variáveis: Temperatura, Precipitação, Umidade.
+    *   Histórico: Alinhado com dados epidemiológicos.
+3.  **IBGE API** (Dados Demográficos e Geográficos).
+    *   População Anual (para cálculo de incidência).
+    *   Malha Geográfica (Lat/Long).
 
 ---
 

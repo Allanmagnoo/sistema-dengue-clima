@@ -50,8 +50,12 @@ CAPITAIS_BR = {
     'TO': 1721000  # Palmas
 }
 
-# Período de interesse (Solicitação: 2024 e 2025)
-ANOS_HISTORICO = [2024, 2025]
+# Período de interesse (Últimos 10 anos + ano atual)
+current_year = datetime.now().year
+ANOS_HISTORICO = list(range(current_year - 10, current_year + 1))
+
+# Concorrência configurável (requests paralelos)
+DAG_CONCURRENCY = int(os.environ.get("DENGUE_CONCURRENCY", "8"))
 
 def _ingest_dengue_data(uf: str, geocode: int, year: int, **kwargs):
     """
@@ -83,12 +87,12 @@ with DAG(
     schedule=None, 
     catchup=False,
     tags=["bronze", "ingestion", "dengue", "capitais"],
-    max_active_tasks=4, # Importante: Limita a 4 requests simultâneos para não bloquear IP
+    max_active_tasks=DAG_CONCURRENCY,
     doc_md="""
     # Ingestão Histórica InfoDengue (Nacional)
     
     Monitoramento das 27 Capitais Brasileiras.
-    Destaque: Uso de `max_active_tasks` para respeitar rate limits da API pública.
+    Destaque: Concorrência configurável via env `DENGUE_CONCURRENCY`.
     """
 ) as dag:
 

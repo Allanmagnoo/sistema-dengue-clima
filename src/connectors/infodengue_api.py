@@ -36,9 +36,9 @@ class InfoDengueConnector:
             read=retries,
             connect=retries,
             backoff_factor=backoff_factor,
-            status_forcelist=(500, 502, 503, 504),
+            status_forcelist=(429, 500, 502, 503, 504),
         )
-        adapter = HTTPAdapter(max_retries=retry)
+        adapter = HTTPAdapter(max_retries=retry, pool_connections=32, pool_maxsize=32)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
         return session
