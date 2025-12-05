@@ -19,6 +19,7 @@ import re
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.utils.dtb_reader import DTBReader
+from src.jobs.renaming_utils import rename_parquet_recursive
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def run_duckdb(year_start=2020, year_end=2025):
     base_dir = current_dir.parent.parent
     
     BRONZE_PATH = base_dir / "data/bronze/infodengue/municipios/disease=dengue"
-    SILVER_PATH = base_dir / "data/silver/infodengue"
+    SILVER_PATH = base_dir / "data/silver/silver_dengue"
     
     # 1. Load Municipality Metadata
     logger.info("📖 Loading Municipality Metadata...")
@@ -237,6 +238,10 @@ def run_duckdb(year_start=2020, year_end=2025):
     """
     
     con.execute(copy_query)
+    
+    # Rename files to semantic convention
+    rename_parquet_recursive(SILVER_PATH, "silver_dengue")
+    
     logger.info("✅ Silver Layer Transformation Complete!")
 
 def run_rapids(year_start=2020, year_end=2025):
@@ -251,7 +256,7 @@ def run_rapids(year_start=2020, year_end=2025):
     current_dir = Path(__file__).resolve().parent
     base_dir = current_dir.parent.parent
     BRONZE_PATH = base_dir / "data/bronze/infodengue/municipios/disease=dengue"
-    SILVER_PATH = base_dir / "data/silver/infodengue"
+    SILVER_PATH = base_dir / "data/silver/silver_dengue"
     years = list(range(year_start, year_end + 1))
     files = []
     for y in years:
@@ -302,6 +307,10 @@ def run_rapids(year_start=2020, year_end=2025):
     ]]
     dd = dd.rename(columns={"geocode_from_filename":"geocode"})
     dd.to_parquet(str(SILVER_PATH), compression="snappy", partition_on=["uf","ano_epidemiologico"])
+    
+    # Rename files to semantic convention
+    rename_parquet_recursive(SILVER_PATH, "silver_dengue")
+    
     logger.info("✅ RAPIDS Silver Layer Transformation Complete!")
     return True
 

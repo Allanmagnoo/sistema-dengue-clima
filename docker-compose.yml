@@ -1,0 +1,65 @@
+version: '3.1'
+
+services:
+  # Airflow Webserver
+  webserver:
+    build: .
+    command: airflow webserver
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Connection to the Postgres installed on the host machine
+      # Format: postgresql://<user>:<password>@host.docker.internal:5432/<db_name>
+      # Please update the user/password if they differ from postgres:postgres
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://postgres:postgres@host.docker.internal:5432/postgres
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql://postgres:postgres@host.docker.internal:5432/postgres
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./plugins:/usr/local/airflow/plugins
+      - ./include:/usr/local/airflow/include
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Airflow Scheduler
+  scheduler:
+    build: .
+    command: airflow scheduler
+    restart: always
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://postgres:postgres@host.docker.internal:5432/postgres
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql://postgres:postgres@host.docker.internal:5432/postgres
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./plugins:/usr/local/airflow/plugins
+      - ./include:/usr/local/airflow/include
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Airflow Triggerer
+  triggerer:
+    build: .
+    command: airflow triggerer
+    restart: always
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://postgres:postgres@host.docker.internal:5432/postgres
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql://postgres:postgres@host.docker.internal:5432/postgres
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+      - ./plugins:/usr/local/airflow/plugins
+      - ./include:/usr/local/airflow/include
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# The original db service is removed to use the local Postgres instance
+# If you need to run a separate Postgres container, ensure you change the port mapping (e.g., "5433:5432")

@@ -2,6 +2,14 @@ import duckdb
 import duckdb
 import logging
 from pathlib import Path
+import sys
+
+# Ensure current dir is in path for imports
+current_dir = Path(__file__).resolve().parent
+if str(current_dir) not in sys.path:
+    sys.path.append(str(current_dir))
+
+from renaming_utils import rename_parquet_recursive
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -13,9 +21,9 @@ def main():
     base_dir = current_dir.parent.parent
     
     # --- Paths ---
-    SILVER_INMET_PATH = base_dir / "data/silver/inmet"
-    SILVER_DENGUE_PATH = base_dir / "data/silver/infodengue"
-    MAPPING_TABLE_PATH = base_dir / "data/silver/mapping_estacao_geocode.parquet"
+    SILVER_INMET_PATH = base_dir / "data/silver/silver_inmet"
+    SILVER_DENGUE_PATH = base_dir / "data/silver/silver_dengue"
+    MAPPING_TABLE_PATH = base_dir / "data/silver/silver_mapping_estacao_geocode.parquet"
     GOLD_PATH = base_dir / "data/gold"
     
     GOLD_PATH.mkdir(parents=True, exist_ok=True)
@@ -193,7 +201,7 @@ def main():
         logger.info(f"  Sample INMET Key: {sample_c}")
     
     # Write partitioned by UF to handle large data
-    output_path = GOLD_PATH / 'dengue_clima_partitioned'
+    output_path = GOLD_PATH / 'gold_dengue_clima'
     con.execute(f"""
         COPY gold_final TO '{output_path}' (
             FORMAT PARQUET, 
@@ -205,6 +213,9 @@ def main():
     
     logger.info(f"✅ Gold Layer created at: {output_path}")
     con.close()
+    
+    # Rename files
+    rename_parquet_recursive(output_path, "gold_dengue_clima")
 
 if __name__ == "__main__":
     main()

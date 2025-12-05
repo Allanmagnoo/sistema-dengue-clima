@@ -12,7 +12,7 @@ BRONZE_DIR = DATA_DIR / "bronze"
 SILVER_DIR = DATA_DIR / "silver"
 DTB_FILE_PATH = BRONZE_DIR / "DTB_2024" / "RELATORIO_DTB_BRASIL_2024_MUNICIPIOS.xls"
 INMET_BRONZE_DIR = BRONZE_DIR / "inmet"
-OUTPUT_PATH = SILVER_DIR / "mapping_estacao_geocode.parquet"
+OUTPUT_PATH = SILVER_DIR / "silver_mapping_estacao_geocode.parquet"
 
 def normalize_text(text):
     """Remove acentos e converte para minúsculas."""

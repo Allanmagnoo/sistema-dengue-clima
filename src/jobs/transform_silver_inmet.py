@@ -15,6 +15,10 @@ import multiprocessing
 import argparse
 from pathlib import Path
 
+# Add src to path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from src.jobs.renaming_utils import rename_parquet_recursive
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -34,7 +38,7 @@ def main():
     base_dir = current_dir.parent.parent
     
     BRONZE_PATH = base_dir / "data/bronze/inmet"
-    SILVER_PATH = base_dir / "data/silver/inmet"
+    SILVER_PATH = base_dir / "data/silver/silver_inmet"
     
     # 1. Initialize DuckDB with Performance Tuning
     # Use all available CPU cores
@@ -196,6 +200,11 @@ def main():
     """
     
     con.execute(copy_query)
+
+    
+    # Rename files
+    rename_parquet_recursive(SILVER_PATH, "silver_inmet")
+    
     logger.info("✅ Silver Layer Transformation Complete!")
 
 if __name__ == "__main__":
