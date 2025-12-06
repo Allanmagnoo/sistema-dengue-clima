@@ -9,3 +9,4 @@ pyspark
 matplotlib
 seaborn
 jupyter
+tqdm

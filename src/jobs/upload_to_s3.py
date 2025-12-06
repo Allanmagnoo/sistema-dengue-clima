@@ -1,54 +1,83 @@
 """
-Upload de dados para AWS S3
-Faz upload das camadas Bronze, Silver e Gold para o S3
+Upload de dados para AWS S3 (Otimizado com Paralelismo)
+Faz upload das camadas Bronze, Silver e Gold para o S3 de forma concorrente.
 """
 import boto3
 import logging
 from pathlib import Path
 from botocore.exceptions import ClientError
 import os
+import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
+import sys
+
+# Tenta importar tqdm para barra de progresso
+try:
+    from tqdm import tqdm
+    HAS_TQDM = True
+except ImportError:
+    HAS_TQDM = False
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# === CONFIGURAÇÕES ===
-S3_BUCKET = "sistema-dengue-clima"  # ALTERE PARA O NOME DO SEU BUCKET
-S3_PREFIX = "data"  # Prefixo no S3 (pode deixar 'data' ou alterar)
-AWS_REGION = "us-east-1"  # ALTERE PARA SUA REGIÃO
+# === CONFIGURAÇÕES GLOBAIS ===
+AWS_REGION = "us-east-1"
+MAX_WORKERS = 50  # Número de threads simultâneas
 
-def get_s3_client():
-    """Cria cliente S3 usando credenciais do ambiente ou AWS CLI"""
+def get_s3_client(bucket_name):
+    """Cria cliente S3 e garante existencia do bucket"""
     try:
-        s3_client = boto3.client('s3', region_name=AWS_REGION)
-        # Testa a conexão
-        s3_client.head_bucket(Bucket=S3_BUCKET)
-        logger.info(f"✅ Conectado ao bucket S3: {S3_BUCKET}")
-        return s3_client
-    except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == '404':
-            logger.error(f"❌ Bucket '{S3_BUCKET}' não encontrado. Criando...")
-            s3_client = boto3.client('s3', region_name=AWS_REGION)
-            try:
+        session = boto3.Session()
+        s3_client = session.client('s3', region_name=AWS_REGION)
+        
+        # Testa a conexão / existencia
+        try:
+            s3_client.head_bucket(Bucket=bucket_name)
+            logger.info(f"✅ Conectado ao bucket S3: {bucket_name}")
+            return s3_client
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == '404':
+                logger.info(f"⚠️ Bucket '{bucket_name}' não encontrado. Criando...")
                 if AWS_REGION == 'us-east-1':
-                    s3_client.create_bucket(Bucket=S3_BUCKET)
+                    s3_client.create_bucket(Bucket=bucket_name)
                 else:
                     s3_client.create_bucket(
-                        Bucket=S3_BUCKET,
+                        Bucket=bucket_name,
                         CreateBucketConfiguration={'LocationConstraint': AWS_REGION}
                     )
-                logger.info(f"✅ Bucket '{S3_BUCKET}' criado com sucesso!")
+                logger.info(f"✅ Bucket '{bucket_name}' criado com sucesso!")
                 return s3_client
-            except Exception as create_error:
-                logger.error(f"❌ Erro ao criar bucket: {create_error}")
+            elif error_code == '403':
+                logger.error(f"❌ Acesso negado ao bucket '{bucket_name}'. Verifique suas permissões.")
+                sys.exit(1)
+            else:
                 raise
-        else:
-            logger.error(f"❌ Erro ao conectar ao S3: {e}")
-            raise
+    except Exception as e:
+        logger.error(f"❌ Erro crítico ao conectar ao S3: {e}")
+        sys.exit(1)
 
-def upload_directory(s3_client, local_path, s3_prefix, layer_name):
+def upload_single_file(s3_client, local_path, bucket, s3_key, progress_callback=None):
+    """Faz upload de um único arquivo"""
+    try:
+        s3_client.upload_file(
+            str(local_path),
+            bucket,
+            s3_key,
+            ExtraArgs={'ServerSideEncryption': 'AES256'}
+        )
+        if progress_callback:
+            progress_callback(local_path.stat().st_size)
+        return True
+    except Exception as e:
+        logger.error(f"❌ Falha no upload de {local_path}: {e}")
+        return False
+
+def upload_directory_parallel(s3_client, local_path, bucket, s3_prefix, layer_name):
     """
-    Faz upload recursivo de um diretório para o S3
+    Faz upload recursivo de um diretório para o S3 usando Threads
     """
     local_path = Path(local_path)
     
@@ -56,135 +85,105 @@ def upload_directory(s3_client, local_path, s3_prefix, layer_name):
         logger.warning(f"⚠️ Caminho não encontrado: {local_path}")
         return 0
     
-    logger.info(f"\n📤 Uploading {layer_name} de: {local_path}")
-    logger.info(f"   Para: s3://{S3_BUCKET}/{s3_prefix}")
+    logger.info(f"\n📦 Preparando {layer_name}: {local_path} -> s3://{bucket}/{s3_prefix}")
     
-    uploaded_count = 0
-    total_size = 0
-    
-    # Lista todos os arquivos recursivamente
+    # 1. Listar arquivos
     files_to_upload = []
     if local_path.is_file():
-        files_to_upload = [local_path]
+        files_to_upload.append((local_path, f"{s3_prefix}/{local_path.name}"))
     else:
-        files_to_upload = list(local_path.rglob('*'))
-        files_to_upload = [f for f in files_to_upload if f.is_file()]
+        for f in local_path.rglob('*'):
+            if f.is_file():
+                relative_path = f.relative_to(local_path)
+                s3_key = f"{s3_prefix}/{relative_path}".replace("\\", "/")
+                files_to_upload.append((f, s3_key))
     
     total_files = len(files_to_upload)
-    logger.info(f"   Total de arquivos: {total_files}")
-    
-    for i, file_path in enumerate(files_to_upload, 1):
-        try:
-            # Calcula o caminho relativo
-            if local_path.is_file():
-                relative_path = file_path.name
-            else:
-                relative_path = file_path.relative_to(local_path)
-            
-            # Monta a key no S3
-            s3_key = f"{s3_prefix}/{relative_path}".replace("\\", "/")
-            
-            # Faz o upload
-            file_size = file_path.stat().st_size
-            s3_client.upload_file(
-                str(file_path),
-                S3_BUCKET,
-                s3_key,
-                ExtraArgs={'ServerSideEncryption': 'AES256'}  # Criptografia
-            )
-            
-            uploaded_count += 1
-            total_size += file_size
-            
-            # Log de progresso
-            if uploaded_count % 100 == 0 or uploaded_count == total_files:
-                logger.info(f"   Progresso: {uploaded_count}/{total_files} arquivos ({total_size / (1024**2):.2f} MB)")
+    if total_files == 0:
+        logger.info("   Nenhum arquivo encontrado.")
+        return 0
         
-        except Exception as e:
-            logger.error(f"   ❌ Erro ao fazer upload de {file_path}: {e}")
+    logger.info(f"   🚀 Iniciando upload de {total_files} arquivos com {MAX_WORKERS} threads...")
     
-    logger.info(f"✅ {layer_name}: {uploaded_count} arquivos enviados ({total_size / (1024**2):.2f} MB)")
+    uploaded_count = 0
+    uploaded_bytes = 0
+    
+    # Barra de progresso
+    pbar = None
+    if HAS_TQDM:
+        pbar = tqdm(total=total_files, unit='file', desc=f"Upload {layer_name}")
+    
+    def update_progress(size):
+        nonlocal uploaded_count, uploaded_bytes
+        uploaded_count += 1
+        uploaded_bytes += size
+        if pbar:
+            pbar.update(1)
+            
+    # Thread Pool
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = []
+        for f_path, s3_key in files_to_upload:
+            futures.append(
+                executor.submit(upload_single_file, s3_client, f_path, bucket, s3_key, update_progress)
+            )
+        
+        # Aguarda conclusão
+        for future in as_completed(futures):
+            pass  # Exceções já são tratadas no upload_single_file
+            
+    if pbar:
+        pbar.close()
+        
+    logger.info(f"✅ {layer_name} concluído: {uploaded_count} arquivos ({uploaded_bytes / (1024**2):.2f} MB)")
     return uploaded_count
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bucket", default=os.getenv("S3_BUCKET_NAME", "sistema-dengue-clima"))
+    args = parser.parse_args()
+    
+    bucket_name = args.bucket
+    
     logger.info("=" * 80)
-    logger.info("🚀 UPLOAD DE DADOS PARA AWS S3")
+    logger.info("🚀 UPLOAD DE DADOS PARA AWS S3 (PARALELO)")
+    logger.info(f"📍 Bucket Alvo: {bucket_name}")
     logger.info("=" * 80)
     
-    # Paths
+    # Paths Locais
     current_dir = Path(__file__).resolve().parent
     base_dir = current_dir.parent.parent
     data_dir = base_dir / "data"
     
-    # Verificar credenciais AWS
-    logger.info("\n🔑 Verificando credenciais AWS...")
-    try:
-        session = boto3.Session()
-        credentials = session.get_credentials()
-        if credentials is None:
-            logger.error("❌ Credenciais AWS não encontradas!")
-            logger.info("\nConfigure suas credenciais usando:")
-            logger.info("  1. aws configure (AWS CLI)")
-            logger.info("  2. Variáveis de ambiente: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY")
-            logger.info("  3. IAM Role (se estiver em EC2/Lambda)")
-            return
-        
-        logger.info(f"✅ Credenciais encontradas para: {session.region_name or 'default region'}")
-    except Exception as e:
-        logger.error(f"❌ Erro ao verificar credenciais: {e}")
-        return
+    # Cliente S3
+    s3_client = get_s3_client(bucket_name)
     
-    # Criar cliente S3
-    try:
-        s3_client = get_s3_client()
-    except Exception as e:
-        logger.error(f"❌ Erro ao conectar ao S3: {e}")
-        return
-    
-    # === ESTRUTURA DE UPLOAD ===
+    # === PLANO DE UPLOAD ===
+    # Ajustado para os caminhos reais corretos
     upload_plan = [
-        # (local_path, s3_path, description)
-        (data_dir / "bronze" / "DTB_2024", f"{S3_PREFIX}/bronze/DTB_2024", "Bronze - DTB 2024"),
-        (data_dir / "bronze" / "infodengue", f"{S3_PREFIX}/bronze/infodengue", "Bronze - InfoDengue"),
-        (data_dir / "bronze" / "inmet", f"{S3_PREFIX}/bronze/inmet", "Bronze - INMET"),
-        (data_dir / "silver" / "infodengue", f"{S3_PREFIX}/silver/infodengue", "Silver - InfoDengue"),
-        (data_dir / "silver" / "inmet", f"{S3_PREFIX}/silver/inmet", "Silver - INMET"),
-        (data_dir / "silver" / "mapping_estacao_geocode.parquet", f"{S3_PREFIX}/silver/mapping_estacao_geocode.parquet", "Silver - Mapping"),
-        (data_dir / "gold" / "dengue_clima_partitioned", f"{S3_PREFIX}/gold/dengue_clima_partitioned", "Gold - Dengue + Clima"),
+        # Bronze Layer
+        (data_dir / "bronze" / "DTB_2024", "data/bronze/DTB_2024", "Bronze - DTB"),
+        (data_dir / "bronze" / "infodengue", "data/bronze/infodengue", "Bronze - InfoDengue (CSV)"),
+        (data_dir / "bronze" / "inmet", "data/bronze/inmet", "Bronze - INMET"),
+        
+        # Silver Layer
+        (data_dir / "silver" / "silver_dengue", "data/silver/silver_dengue", "Silver - Dengue"),
+        (data_dir / "silver" / "silver_inmet", "data/silver/silver_inmet", "Silver - INMET"),
+        (data_dir / "silver" / "silver_mapping_estacao_geocode.parquet", "data/silver/silver_mapping_estacao_geocode.parquet", "Silver - Mapping"),
+        
+        # Gold Layer
+        (data_dir / "gold" / "gold_dengue_clima", "data/gold/gold_dengue_clima", "Gold - Final"),
     ]
     
     total_uploaded = 0
-    
-    for local_path, s3_path, description in upload_plan:
-        count = upload_directory(s3_client, local_path, s3_path, description)
+    for local_path, s3_prefix, description in upload_plan:
+        count = upload_directory_parallel(s3_client, local_path, bucket_name, s3_prefix, description)
         total_uploaded += count
-    
+        
     logger.info("\n" + "=" * 80)
-    logger.info(f"✅ UPLOAD CONCLUÍDO!")
-    logger.info(f"   Total de arquivos enviados: {total_uploaded}")
-    logger.info(f"   Bucket: s3://{S3_BUCKET}/{S3_PREFIX}")
+    logger.info(f"🎉 TODO O PROCESSO CONCLUÍDO!")
+    logger.info(f"📊 Total de arquivos processados: {total_uploaded}")
     logger.info("=" * 80)
-    
-    # Listar estrutura no S3
-    logger.info("\n📁 Estrutura criada no S3:")
-    try:
-        paginator = s3_client.get_paginator('list_objects_v2')
-        folders = set()
-        
-        for page in paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX, Delimiter='/'):
-            for prefix in page.get('CommonPrefixes', []):
-                folder = prefix['Prefix']
-                folders.add(folder)
-        
-        for folder in sorted(folders):
-            logger.info(f"   📂 s3://{S3_BUCKET}/{folder}")
-    except Exception as e:
-        logger.error(f"❌ Erro ao listar estrutura: {e}")
-    
-    logger.info("\n💡 Próximos passos:")
-    logger.info("   1. Configure Glue Crawler para catalogar os dados")
-    logger.info("   2. Use Athena para consultar os dados diretamente do S3")
-    logger.info("   3. Configure EMR/Databricks para processamento em larga escala")
 
 if __name__ == "__main__":
     main()
