@@ -56,97 +56,55 @@ st.set_page_config(
 )
 
 # ============================================================================
-# CSS - TEMA PROFISSIONAL CLARO
+# CSS - TEMA DARK PROFISSIONAL
 # ============================================================================
 st.markdown("""
 <style>
-    /* === Paleta de Cores Profissional === */
-    /* Primary: Teal/Verde-azulado (#0D9488)
-       Secondary: Amber/Âmbar (#F59E0B)
-       Accent: Rose (#E11D48)
-       Background: Slate Gray (#F8FAFC)
-       Text: Dark Slate (#1E293B)
-    */
-    
-    /* === Layout Principal === */
-    .stApp {
-        background-color: #F8FAFC;
-        color: #334155;
-    }
-    
-    .main .block-container {
-        padding-top: 2rem;
-    }
-    
-    /* === Sidebar === */
-    section[data-testid="stSidebar"] {
-        background-color: #FFFFFF;
-        border-right: 1px solid #E2E8F0;
-    }
-    
-    section[data-testid="stSidebar"] .stSelectbox label,
-    section[data-testid="stSidebar"] .stMultiSelect label,
-    section[data-testid="stSidebar"] .stSlider label,
-    section[data-testid="stSidebar"] .stRadio label {
-        color: #1E293B !important;
-        font-weight: 600;
-        font-size: 0.875rem;
-    }
-    
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3 {
-        color: #0D9488 !important;
-    }
+    /* === Paleta Dark Premium === */
+    /* Primary: Teal (#0D9488), Secondary: Amber (#F59E0B), Background: Slate (#0E1117) */
     
     /* === Cards de Métricas === */
     div[data-testid="metric-container"] {
-        background: #FFFFFF;
-        border: 1px solid #E2E8F0;
+        background: #262730;
+        border: 1px solid #3D3D4D;
         border-left: 4px solid #0D9488;
         border-radius: 8px;
         padding: 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
     div[data-testid="metric-container"] label {
-        color: #64748B !important;
+        color: #94A3B8 !important;
         font-weight: 600;
         text-transform: uppercase;
         font-size: 0.75rem;
-        letter-spacing: 0.5px;
     }
     
     div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        color: #0F172A !important;
+        color: #FAFAFA !important;
         font-size: 1.8rem;
         font-weight: 700;
-    }
-    
-    div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
-        font-weight: 600;
     }
     
     /* === Tabs === */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background: #FFFFFF;
+        background: #262730;
         padding: 8px;
         border-radius: 8px;
-        border: 1px solid #E2E8F0;
+        border: 1px solid #3D3D4D;
     }
     
     .stTabs [data-baseweb="tab"] {
         background: transparent;
         border-radius: 6px;
-        color: #475569;
+        color: #94A3B8;
         font-weight: 600;
         padding: 8px 16px;
         border: none;
     }
     
     .stTabs [data-baseweb="tab"]:hover {
-        background: #F1F5F9;
+        background: #3D3D4D;
         color: #0D9488;
     }
     
@@ -155,127 +113,16 @@ st.markdown("""
         color: white !important;
     }
     
-    /* === Headers === */
-    h1 {
-        color: #0F172A !important;
-        font-weight: 700;
-        font-size: 2rem !important;
-    }
-    
-    h2, h3 {
-        color: #1E293B !important;
-        font-weight: 600;
-    }
-    
-    /* === Texto Geral === */
-    p, span, div, li {
-        color: #334155;
-    }
-    
-    /* === Expanders === */
-    .streamlit-expanderHeader {
-        background-color: #F1F5F9 !important;
-        border-radius: 8px;
-        font-weight: 600;
-        color: #1E293B !important;
-    }
-    
-    .streamlit-expanderContent {
-        background-color: #FFFFFF !important;
-        color: #334155 !important;
-    }
-
-    /* === Inputs e Widgets (Global) === */
-    .stSelectbox div[data-baseweb="select"] > div,
-    .stMultiSelect div[data-baseweb="select"] > div {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border-color: #CBD5E1 !important;
-    }
-    
-    /* Texto dentro do input/select */
-    .stSelectbox div[data-baseweb="select"] span,
-    .stMultiSelect div[data-baseweb="select"] span {
-        color: #0F172A !important;
-    }
-    
-    /* Dropdown menu items */
-    li[role="option"] {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-    }
-    
-    /* Chips/Tags no MultiSelect */
-    .stMultiSelect div[data-baseweb="tag"] {
-        background-color: #E2E8F0 !important;
-        color: #0F172A !important;
-    }
-    
     /* === Alerts === */
     .stAlert {
         border-radius: 8px;
     }
     
-    /* === DataFrames === */
-    /* === Menus Dropdown (Correção "Botão List") === */
-    div[data-baseweb="popover"],
-    div[data-baseweb="menu"],
-    ul[role="listbox"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
-    }
-    
-    li[role="option"]:hover,
-    li[role="option"][aria-selected="true"] {
-        background-color: #F1F5F9 !important;
+    /* === Sidebar Headers === */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
         color: #0D9488 !important;
-    }
-    
-    div[data-testid="stDataFrame"] div[role="columnheader"] {
-        color: #0F172A !important;
-        background-color: #F8FAFC !important;
-        border-bottom: 1px solid #E2E8F0 !important;
-    }
-    
-    div[data-testid="stDataFrame"] div[role="gridcell"] {
-        color: #334155 !important;
-        background-color: #FFFFFF !important;
-    }
-    
-    /* Forçar fundo claro nos expanders e tabelas */
-    .stDataFrame, div[data-testid="stDataFrame"] {
-        background-color: #FFFFFF !important;
-    }
-    
-    /* Expander fix */
-    .streamlit-expanderHeader {
-        background-color: #F1F5F9 !important;
-        color: #0F172A !important;
-        border-radius: 4px;
-    }
-    
-    .streamlit-expanderContent {
-        background-color: #FFFFFF !important;
-        color: #334155 !important;
-        border-top: 1px solid #E2E8F0;
-    }
-
-    /* === TABELAS E DATA EDITOR (Correção Fundo Preto) === */
-    [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame {
-        background-color: #FFFFFF !important;
-    }
-    
-    [data-testid="stDataFrame"] div, [data-testid="stTable"] div {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important; 
-    }
-    
-    /* Header da Tabela */
-    [data-testid="stDataFrame"] div[role="columnheader"] {
-        color: #0F172A !important;
-        background-color: #F1F5F9 !important;
-        font-weight: 700 !important;
-        border-bottom: 2px solid #CBD5E1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -390,11 +237,34 @@ def load_data():
             
     return df
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_sanitation_data():
+    """Carrega dados combinados de Saneamento e Dengue (Gold)"""
+    project_root = get_project_root()
+    file_path = project_root / 'data/gold/paineis/painel_municipal_dengue_saneamento.parquet'
+    
+    if not file_path.exists():
+        return pd.DataFrame()
+        
+    try:
+        df = pd.read_parquet(file_path)
+        # Enriquecer com Região
+        if 'sigla_uf' in df.columns:
+            df['regiao'] = df['sigla_uf'].apply(lambda x: get_regiao_id(str(x)))
+            # Mapear para nome da região para facilitar plots
+            reg_map = {0: 'Norte', 1: 'Nordeste', 2: 'Centro-Oeste', 3: 'Sudeste', 4: 'Sul'}
+            df['nome_regiao'] = df['regiao'].map(reg_map)
+        return df
+    except Exception as e:
+        print(f"Erro ao carregar saneamento: {e}")
+        return pd.DataFrame()
+
 @st.cache_resource
 def load_model():
     project_root = get_project_root()
-    model_path = project_root / 'models/dengue_model.joblib'
-    metadata_path = project_root / 'models/model_metadata.json'
+    # Atualizado para o modelo v3 (Híbrido)
+    model_path = project_root / 'models/dengue_hibrido_v3.joblib'
+    metadata_path = project_root / 'models/model_metadata_v3.json'
     
     model = None
     metadata = {}
@@ -447,18 +317,19 @@ def render_sidebar_filters(df):
     """Renderiza filtros laterais com base no modo"""
     st.sidebar.header("🧭 Navegação")
     
-    # Seletor de Modo (UX Preset)
-    mode_options = {
-        "Visão Geral": "🏠 Visão Geral",
-        "Explorador": "🔎 Explorador Avançado",
-        "Sazonalidade": "🌦️ Sazonalidade & Clima"
-    }
+    # Seletor de Modo (UX Preset) - Botões Visíveis
+    mode_options = ["🏠 Visão Geral", "🔎 Explorador", "🌦️ Sazonalidade", "🚰 Saneamento"]
+    mode_keys = ["Visão Geral", "Explorador", "Sazonalidade", "Saneamento"]
     
-    selected_mode_key = st.sidebar.selectbox(
-        "Selecione a Análise",
-        options=list(mode_options.keys()),
-        format_func=lambda x: mode_options[x]
+    selected_mode_display = st.sidebar.radio(
+        "📊 Selecione a Análise",
+        options=mode_options,
+        horizontal=False, # Stack vertical for clarity
+        label_visibility="visible"
     )
+    
+    # Map display to key
+    selected_mode_key = mode_keys[mode_options.index(selected_mode_display)]
     
     st.sidebar.markdown("---")
     st.sidebar.header("🔍 Filtros")
@@ -1171,6 +1042,296 @@ def render_seasonal_mode(df, filters):
             fig_lag = apply_light_theme(fig_lag)
             st.plotly_chart(fig_lag, use_container_width=True)
 
+def render_sanitation_mode(df_san):
+    """Renderiza a visão de Saneamento"""
+    st.subheader("🚰 Saneamento Básico & Dengue")
+    st.info("ℹ️ Análise cruzada entre indicadores do SNIS (Sistema Nacional de Informações sobre Saneamento) e incidência de Dengue.")
+    
+    if df_san.empty:
+        st.error("Dados de saneamento não disponíveis.")
+        return
+
+    # Filtros Básicos
+    regioes = ["Todas"] + sorted(df_san['nome_regiao'].dropna().unique())
+    sel_regiao = st.selectbox("Filtrar Região", regioes)
+    
+    df_plot = df_san.copy()
+    if sel_regiao != "Todas":
+        df_plot = df_plot[df_plot['nome_regiao'] == sel_regiao]
+        
+    # KPIs Rápidos
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("🏙️ Municípios", len(df_plot))
+    with col2:
+        cob_esgoto = df_plot['esgoto_cobertura_total_pct'].mean()
+        st.metric("🚽 Cobertura Esgoto (Média)", f"{cob_esgoto:.1f}%")
+    with col3:
+        perda_agua = df_plot['agua_perda_distribuicao_pct'].mean()
+        st.metric("💧 Perda de Água (Média)", f"{perda_agua:.1f}%")
+    with col4:
+        incidencia = df_plot['incidencia_dengue_100k'].median()
+        st.metric("🦟 Incidência Mediana", f"{incidencia:.0f}/100k")
+        
+    st.markdown("---")
+    
+    col_a, col_b = st.columns(2)
+    
+    # 1. Scatter: Esgoto vs Dengue
+    with col_a:
+        st.markdown("#### 🚽 Esgoto vs Incidência")
+        fig1 = px.scatter(
+            df_plot,
+            x='esgoto_cobertura_total_pct',
+            y='incidencia_dengue_100k',
+            color='nome_regiao',
+            hover_name='id_municipio',
+            title="Cobertura de Esgoto x Incidência de Dengue",
+            labels={'esgoto_cobertura_total_pct': 'Cobertura Esgoto (%)', 'incidencia_dengue_100k': 'Incidência (casos/100k)'},
+            height=400,
+            opacity=0.6,
+            log_y=True,
+            range_x=[0, 100] # Fixar eixo X de 0 a 100%
+        )
+        fig1.update_layout(template='plotly_dark')
+        st.plotly_chart(fig1, use_container_width=True)
+        st.caption("Nota: Escala Y logarítmica. Municípios com MENOS esgoto tendem a ter MAIS casos?")
+
+    # 2. Scatter: Perda de Água vs Dengue
+    with col_b:
+        st.markdown("#### 💧 Perda de Água vs Incidência")
+        fig2 = px.scatter(
+            df_plot,
+            x='agua_perda_distribuicao_pct',
+            y='incidencia_dengue_100k',
+            color='nome_regiao',
+            hover_name='id_municipio',
+            title="Perda de Água x Incidência de Dengue",
+            labels={'agua_perda_distribuicao_pct': 'Perda na Distribuição (%)', 'incidencia_dengue_100k': 'Incidência'},
+            height=400,
+            opacity=0.6,
+            log_y=True,
+            range_x=[0, 100] # Fixar eixo X de 0 a 100%
+        )
+        fig2.update_layout(template='plotly_dark')
+        st.plotly_chart(fig2, use_container_width=True)
+        st.caption("Água perdida gera poças? Veja a correlação.")
+        
+    st.markdown("---")
+    
+    # 3. Bar Chart Agregado: Incidência por Faixa de Cobertura
+    st.markdown("#### 📊 Incidência Média por Faixa de Saneamento")
+    
+    col_c, col_d = st.columns(2)
+    
+    with col_c:
+        # Binning Esgoto
+        bins = [0, 20, 50, 80, 100]
+        labels = ['Crítico (0-20%)', 'Baixo (20-50%)', 'Médio (50-80%)', 'Alto (>80%)']
+        df_plot['faixa_esgoto'] = pd.cut(df_plot['esgoto_cobertura_total_pct'], bins=bins, labels=labels)
+        
+        df_bar = df_plot.groupby('faixa_esgoto')['incidencia_dengue_100k'].mean().reset_index()
+        
+        fig3 = px.bar(
+            df_bar,
+            x='faixa_esgoto',
+            y='incidencia_dengue_100k',
+            color='faixa_esgoto',
+            color_discrete_sequence=px.colors.qualitative.Prism,
+            title="Por Cobertura de Esgoto",
+            labels={'incidencia_dengue_100k': 'Incidência Média', 'faixa_esgoto': 'Faixa'}
+        )
+        fig3.update_layout(showlegend=False, template='plotly_dark')
+        st.plotly_chart(fig3, use_container_width=True)
+        
+    with col_d:
+        # Binning Densidade (IBGE)
+        if 'densidade_domiciliada' in df_plot.columns:
+            # Quartis para densidade
+            try:
+                df_plot['faixa_densidade'] = pd.qcut(df_plot['densidade_domiciliada'], q=4, labels=['Baixa', 'Média', 'Alta', 'Muito Alta'])
+                df_bar_dens = df_plot.groupby('faixa_densidade')['incidencia_dengue_100k'].mean().reset_index()
+                
+                fig4 = px.bar(
+                    df_bar_dens,
+                    x='faixa_densidade',
+                    y='incidencia_dengue_100k',
+                    color='faixa_densidade',
+                    color_discrete_sequence=px.colors.sequential.Teal,
+                    title="Por Densidade Domiciliada (IBGE)",
+                    labels={'incidencia_dengue_100k': 'Incidência Média', 'faixa_densidade': 'Densidade'}
+                )
+                fig4.update_layout(showlegend=False, template='plotly_dark')
+                st.plotly_chart(fig4, use_container_width=True)
+            except Exception as e:
+                st.info(f"Não foi possível gerar gráfico de densidade: {e}")
+    
+    st.markdown("---")
+    
+    # === 4. MAPA CHOROPLETH: Cobertura de Esgoto por UF ===
+    st.markdown("#### 🗺️ Mapa de Cobertura de Esgoto por Estado")
+    
+    # Agregar por UF
+    df_uf = df_san.groupby('sigla_uf').agg({
+        'esgoto_cobertura_total_pct': 'mean',
+        'incidencia_dengue_100k': 'mean'
+    }).reset_index()
+    
+    geojson = load_geojson()
+    
+    if geojson:
+        fig_map = px.choropleth_mapbox(
+            df_uf,
+            geojson=geojson,
+            locations='sigla_uf',
+            featureidkey="properties.sigla",
+            color='esgoto_cobertura_total_pct',
+            color_continuous_scale='RdYlGn', # Vermelho (ruim) -> Amarelo -> Verde (bom)
+            mapbox_style="carto-darkmatter", # Dark theme
+            zoom=3.5,
+            center={"lat": -15.793889, "lon": -47.882778},
+            opacity=0.7,
+            labels={'esgoto_cobertura_total_pct': 'Cobertura Esgoto (%)'}
+        )
+        fig_map.update_layout(
+            height=600,
+            margin={"r":0,"t":0,"l":0,"b":0},
+            template='plotly_dark'
+        )
+        st.plotly_chart(fig_map, use_container_width=True)
+        st.caption("Verde = Alta cobertura de esgoto. Vermelho = Baixa cobertura.")
+    else:
+        st.warning("Mapa não disponível.")
+    
+    st.markdown("---")
+    
+    # === 5. MATRIZ DE CORRELAÇÃO (Heatmap) ===
+    st.markdown("#### 🔥 Matriz de Correlação: Saneamento x Dengue")
+    
+    # Selecionar colunas relevantes
+    corr_cols = [
+        'incidencia_dengue_100k',
+        'esgoto_cobertura_total_pct',
+        'agua_cobertura_total_pct',
+        'agua_perda_distribuicao_pct',
+        'densidade_demografica_geral'
+    ]
+    
+    # Filtrar colunas existentes
+    corr_cols_valid = [c for c in corr_cols if c in df_san.columns]
+    
+    if len(corr_cols_valid) > 1:
+        corr_matrix = df_san[corr_cols_valid].corr()
+        
+        # Nomes mais amigáveis
+        rename_map = {
+            'incidencia_dengue_100k': 'Incidência Dengue',
+            'esgoto_cobertura_total_pct': 'Cobertura Esgoto',
+            'agua_cobertura_total_pct': 'Cobertura Água',
+            'agua_perda_distribuicao_pct': 'Perda Água',
+            'densidade_demografica_geral': 'Densidade Demográfica'
+        }
+        corr_matrix.rename(index=rename_map, columns=rename_map, inplace=True)
+        
+        fig_corr = px.imshow(
+            corr_matrix,
+            text_auto='.2f',
+            color_continuous_scale='RdBu_r', # Vermelho = Correlação Positiva, Azul = Negativa
+            title="Correlação entre Indicadores",
+            aspect='auto'
+        )
+        fig_corr.update_layout(height=450, template='plotly_dark')
+        st.plotly_chart(fig_corr, use_container_width=True)
+        st.caption("Valores próximos de -1 (azul) = correlação negativa forte. +1 (vermelho) = positiva forte.")
+    else:
+        st.info("Colunas insuficientes para gerar a matriz de correlação.")
+
+def render_simulation_tab(model, metadata):
+    """Simulador Interativo"""
+    st.subheader("🔮 Simulador de Cenários (Modelo Híbrido v3)")
+    
+    if not model:
+        st.warning("⚠️ Modelo v3 não carregado.")
+        render_model_info(model, metadata)
+        return
+
+    st.markdown("""
+    Este simulador utiliza o **Modelo XGBoost Híbrido v3** para prever a incidência semanal de dengue
+    com base em variáveis epidemiológicas, estruturais e climáticas.
+    """)
+    
+    # --- Inputs ---
+    col_input1, col_input2 = st.columns(2)
+    
+    with col_input1:
+        st.markdown("##### 🏥 Epidemiologia (Status Atual)")
+        casos_lag1 = st.number_input("Casos Semana Anterior", min_value=0, value=50, help="Quantos casos ocorreram na semana passada?")
+        casos_lag2 = st.number_input("Casos Há 2 Semanas", min_value=0, value=45)
+        casos_media_4sem = st.number_input("Média Móvel (4 semanas)", min_value=0, value=48)
+        
+        st.markdown("##### 📅 Sazonalidade")
+        semana_epi = st.slider("Semana Epidemiológica", 1, 53, 10)
+    
+    with col_input2:
+        st.markdown("##### 🏗️ Infraestrutura (Cenário)")
+        densidade = st.slider("Densidade Domiciliada (dom/km²)", 0.0, 3000.0, 150.0, help="Densidade urbana (IBGE)")
+        agua_perda = st.slider("Perda de Água na Distribuição (%)", 0.0, 100.0, 35.0, help="Indicador de ineficiência (SNIS)")
+        esgoto_cob = st.slider("Cobertura de Esgoto (%)", 0.0, 100.0, 60.0, help="Acesso a saneamento (SNIS)")
+        agua_cob = st.slider("Cobertura de Água (%)", 0.0, 100.0, 95.0)
+
+    # --- Prediction Logic ---
+    if st.button("🚀 Simular Previsão", type="primary"):
+        try:
+            # Create a single row DataFrame
+            features = metadata.get('features', [])
+            input_data = pd.DataFrame(index=[0], columns=features)
+            input_data.fillna(0, inplace=True) # Default 0 for others
+            
+            # Fill mapped inputs
+            input_data['casos_lag1'] = casos_lag1
+            input_data['casos_lag2'] = casos_lag2
+            # Assuming linear trend for 3 and 4 if not provided
+            input_data['casos_lag3'] = casos_lag2 
+            input_data['casos_lag4'] = casos_lag2
+            input_data['casos_media_4sem'] = casos_media_4sem
+            
+            input_data['densidade_domiciliada'] = densidade
+            input_data['agua_perda_distribuicao_pct'] = agua_perda
+            input_data['esgoto_cobertura_total_pct'] = esgoto_cob
+            input_data['agua_cobertura_total_pct'] = agua_cob
+            
+            # Seasonality
+            input_data['semana_sin'] = np.sin(2 * np.pi * semana_epi / 53)
+            input_data['semana_cos'] = np.cos(2 * np.pi * semana_epi / 53)
+            input_data['ano_epidemiologico'] = 2024 # Fixed for sim
+            
+            # Predict
+            pred = model.predict(input_data)[0]
+            pred = max(0, pred) # No negative cases
+            
+            st.divider()
+            c_res1, c_res2 = st.columns(2)
+            c_res1.metric("🔮 Incidência Prevista", f"{pred:.1f} / 100k hab")
+            
+            # Context
+            risk_level = "Baixo"
+            color = "green"
+            if pred > 100: 
+                risk_level = "Médio" 
+                color = "orange"
+            if pred > 300: 
+                risk_level = "Alto (Epidêmico)" 
+                color = "red"
+                
+            c_res2.markdown(f"**Risco Estimado:** :{color}[{risk_level}]")
+            
+        except Exception as e:
+            st.error(f"Erro na simulação: {e}")
+            
+    st.divider()
+    with st.expander("ℹ️ Detalhes Técnicos do Modelo"):
+        render_model_info(model, metadata)
+
 def render_explorer_mode(df, filters, model, metadata):
     """Modo Explorador: Dashboard Completo"""
     st.header("🔎 Explorador Avançado")
@@ -1181,7 +1342,7 @@ def render_explorer_mode(df, filters, model, metadata):
         "📈 Série Temporal",
         "🌡️ Clima",
         "📅 Comparativo",
-        "🤖 Modelo ML"
+        "🔮 Simulação IA"
     ])
     
     with tab1:
@@ -1194,7 +1355,7 @@ def render_explorer_mode(df, filters, model, metadata):
         render_comparative_analysis(df, filters)
     
     with tab4:
-        render_model_info(model, metadata)
+        render_simulation_tab(model, metadata)
 
 # ============================================================================
 # MAIN
@@ -1224,6 +1385,9 @@ def main():
     # Dispatcher de Modos
     if mode == "Visão Geral":
         render_overview_mode(df_filtered, filters)
+    elif mode == "Saneamento":
+        df_san = load_sanitation_data()
+        render_sanitation_mode(df_san)
     elif mode == "Sazonalidade":
         render_seasonal_mode(df_filtered, filters)
     else: # Explorador
