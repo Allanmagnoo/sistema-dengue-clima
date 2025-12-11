@@ -80,7 +80,19 @@ def parse_file_info(p: Path):
     except ValueError:
         return None
     layer = parts[data_idx + 1] if len(parts) > data_idx + 1 else None
-    dataset = parts[data_idx + 2] if len(parts) > data_idx + 2 else p.stem
+    
+    # Identify dataset
+    if len(parts) > data_idx + 2:
+        dataset = parts[data_idx + 2]
+        # Special handling for Gold panels or files in generic folders
+        if layer == 'gold' and dataset in ['paineis', 'reports', 'dashboards']:
+            dataset = p.stem
+        # Special handling for files directly in layer root (e.g. data/bronze/file.csv)
+        if dataset == p.name:
+            dataset = p.stem
+    else:
+        dataset = p.stem
+
     table_name = f"{layer}_{dataset}" if layer else dataset
     partitions = {}
     for seg in parts[data_idx + 3:]:
@@ -298,7 +310,7 @@ class PostgresLoader:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-path", default=str(Path(__file__).resolve().parents[2] / "data"))
-    parser.add_argument("--layers", default="silver,bronze")
+    parser.add_argument("--layers", default="gold,silver,bronze")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--mode", choices=["incremental", "full"], default="incremental")
     parser.add_argument("--batch-size", type=int, default=200000)

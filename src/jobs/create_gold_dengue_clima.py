@@ -135,7 +135,7 @@ def main():
     """)
     
     query_join = """
-    CREATE TABLE gold_final AS
+    CREATE TABLE gold_with_climate AS
     SELECT
         d.geocode,
         d.nome_municipio,
@@ -181,8 +181,30 @@ def main():
     
     con.execute(query_join)
     
-    # --- Step 5: Quality Check & Write ---
-    logger.info("💾 Step 5: Writing to Parquet...")
+    # --- Step 5: Create Case Lags (NEW!) ---
+    logger.info("🦟 Step 5: Generating Case Lags (1-4 weeks)...")
+    
+    con.execute("""
+        CREATE TABLE gold_final AS
+        SELECT 
+            *,
+            -- Lags de casos (semanas anteriores)
+            LAG(casos_notificados, 1) OVER (PARTITION BY geocode ORDER BY ano_epidemiologico, semana_epidemiologica) as casos_lag1,
+            LAG(casos_notificados, 2) OVER (PARTITION BY geocode ORDER BY ano_epidemiologico, semana_epidemiologica) as casos_lag2,
+            LAG(casos_notificados, 3) OVER (PARTITION BY geocode ORDER BY ano_epidemiologico, semana_epidemiologica) as casos_lag3,
+            LAG(casos_notificados, 4) OVER (PARTITION BY geocode ORDER BY ano_epidemiologico, semana_epidemiologica) as casos_lag4,
+            
+            -- Média móvel de casos (últimas 4 semanas)
+            AVG(casos_notificados) OVER (
+                PARTITION BY geocode 
+                ORDER BY ano_epidemiologico, semana_epidemiologica 
+                ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING
+            ) as casos_media_4sem
+        FROM gold_with_climate
+    """)
+    
+    # --- Step 6: Quality Check & Write ---
+    logger.info("💾 Step 6: Writing to Parquet...")
     
     # Check count
     total_rows = con.execute("SELECT COUNT(*) FROM gold_final").fetchone()[0]
