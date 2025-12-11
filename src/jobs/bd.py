@@ -32,13 +32,22 @@ import io
 import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow import csv
-from dotenv import load_dotenv
+# from dotenv import load_dotenv  # Removed in favor of common loader
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.types import (
     Integer, BigInteger, Float, Numeric, Boolean, Date, DateTime, String, Text
 )
 
-load_dotenv()
+# Import custom env loader
+import sys
+# Add src to path to allow imports if running as script
+src_path = Path(__file__).resolve().parent.parent
+if str(src_path) not in sys.path:
+    sys.path.append(str(src_path))
+
+from common.env_loader import load_secure_env
+
+load_secure_env()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

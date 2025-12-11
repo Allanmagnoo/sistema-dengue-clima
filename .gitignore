@@ -5,6 +5,15 @@ data/
 *.json
 *.pkl
 
+# Secrets and Private files
+.secrets/
+*.env
+private_secure/
+.env*
+airflow_settings.yaml
+google_service_account.json
+aws_credentials.json
+
 # Logs
 logs/
 *.log
@@ -63,3 +72,5 @@ unittests.cfg
 *.tmp
 *.temp
 .cache/
+
+!firebase.json

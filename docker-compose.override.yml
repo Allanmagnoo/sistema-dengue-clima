@@ -1,0 +1,32 @@
+version: '3.1'
+
+services:
+  scheduler:
+    environment:
+      - DB_HOST=host.docker.internal
+    volumes:
+      - ./src:/usr/local/airflow/src
+      - ./data:/usr/local/airflow/data
+      - ./models:/usr/local/airflow/models
+      - ./docs:/usr/local/airflow/docs
+      - ./.secrets:/usr/local/airflow/.secrets
+
+  webserver:
+    environment:
+      - DB_HOST=host.docker.internal
+    volumes:
+      - ./src:/usr/local/airflow/src
+      - ./data:/usr/local/airflow/data
+      - ./models:/usr/local/airflow/models
+      - ./docs:/usr/local/airflow/docs
+      - ./.secrets:/usr/local/airflow/.secrets
+
+  triggerer:
+    environment:
+      - DB_HOST=host.docker.internal
+    volumes:
+      - ./src:/usr/local/airflow/src
+      - ./data:/usr/local/airflow/data
+      - ./models:/usr/local/airflow/models
+      - ./docs:/usr/local/airflow/docs
+      - ./.secrets:/usr/local/airflow/.secrets

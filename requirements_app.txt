@@ -1,0 +1,14 @@
+streamlit
+pandas
+plotly
+numpy
+joblib
+pyarrow
+# GCP Dependencies
+google-cloud-bigquery
+google-cloud-storage
+pandas-gbq
+db-dtypes
+# Utilities
+python-dotenv
+requests

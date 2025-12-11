@@ -14,6 +14,15 @@ from datetime import datetime
 import joblib
 import json
 import urllib.request
+import os
+
+# Tentar importar BigQuery (pode não estar instalado localmente)
+try:
+    from google.cloud import bigquery
+    import db_dtypes
+    HAS_BIGQUERY = True
+except ImportError:
+    HAS_BIGQUERY = False
 
 # ============================================================================
 # CONSTANTES GLOBAIS
@@ -175,8 +184,33 @@ def apply_light_theme(fig):
     )
     return fig
 
+    return fig
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_data_from_bigquery(table_id):
+    """Carrega dados do BigQuery"""
+    if not HAS_BIGQUERY:
+        st.error("Biblioteca google-cloud-bigquery não instalada.")
+        return pd.DataFrame()
+        
+    try:
+        client = bigquery.Client()
+        query = f"SELECT * FROM `{table_id}`"
+        df = client.query(query).to_dataframe()
+        return df
+    except Exception as e:
+        st.error(f"Erro ao carregar do BigQuery: {e}")
+        return pd.DataFrame()
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_data():
+    # Verificar fonte de dados
+    if os.getenv("DATA_SOURCE") == "bigquery":
+        project_id = os.getenv("GCP_PROJECT_ID")
+        dataset_id = os.getenv("BQ_DATASET_ID", "dengue_gold")
+        table_name = "gold_dengue_clima"
+        return load_data_from_bigquery(f"{project_id}.{dataset_id}.{table_name}")
+
     project_root = get_project_root()
     data_path = project_root / 'data/gold/gold_dengue_clima'
     
@@ -240,14 +274,34 @@ def load_data():
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_sanitation_data():
     """Carrega dados combinados de Saneamento e Dengue (Gold)"""
-    project_root = get_project_root()
-    file_path = project_root / 'data/gold/paineis/painel_municipal_dengue_saneamento.parquet'
     
-    if not file_path.exists():
-        return pd.DataFrame()
+    if os.getenv("DATA_SOURCE") == "bigquery":
+        project_id = os.getenv("GCP_PROJECT_ID")
+        dataset_id = os.getenv("BQ_DATASET_ID", "dengue_gold")
+        table_name = "painel_municipal_dengue_saneamento"
+        df = load_data_from_bigquery(f"{project_id}.{dataset_id}.{table_name}")
+        # Lógica de processamento comum (abaixo) será aplicada
+    else:
+        project_root = get_project_root()
+        file_path = project_root / 'data/gold/paineis/painel_municipal_dengue_saneamento.parquet'
         
+        if not file_path.exists():
+            return pd.DataFrame()
+            
+        try:
+            df = pd.read_parquet(file_path)
+        except Exception as e:
+            print(f"Erro ao carregar saneamento: {e}")
+            return pd.DataFrame()
+
+    # Processamento Comum (para Local e BQ)
     try:
-        df = pd.read_parquet(file_path)
+        # Calcular Incidência se não existir
+        if 'incidencia_dengue_100k' not in df.columns:
+            if 'total_casos_dengue' in df.columns and 'populacao_total' in df.columns:
+                df['incidencia_dengue_100k'] = (df['total_casos_dengue'] / df['populacao_total']) * 100000
+                df['incidencia_dengue_100k'] = df['incidencia_dengue_100k'].fillna(0)
+
         # Enriquecer com Região
         if 'sigla_uf' in df.columns:
             df['regiao'] = df['sigla_uf'].apply(lambda x: get_regiao_id(str(x)))
@@ -256,7 +310,7 @@ def load_sanitation_data():
             df['nome_regiao'] = df['regiao'].map(reg_map)
         return df
     except Exception as e:
-        print(f"Erro ao carregar saneamento: {e}")
+        print(f"Erro no processamento saneamento: {e}")
         return pd.DataFrame()
 
 @st.cache_resource
@@ -1059,6 +1113,31 @@ def render_sanitation_mode(df_san):
     if sel_regiao != "Todas":
         df_plot = df_plot[df_plot['nome_regiao'] == sel_regiao]
         
+    # Filtros Dinâmicos (Saneamento)
+    with st.expander("🔎 Filtros Avançados de Indicadores"):
+        c_filt1, c_filt2 = st.columns(2)
+        with c_filt1:
+            faixa_esgoto = st.slider("Cobertura de Esgoto (%)", 0.0, 100.0, (0.0, 100.0))
+        with c_filt2:
+            faixa_perda = st.slider("Perda de Água na Distribuição (%)", 0.0, 100.0, (0.0, 100.0))
+            
+    # Aplicação dos Filtros
+    df_plot = df_plot[
+        (df_plot['esgoto_cobertura_total_pct'] >= faixa_esgoto[0]) &
+        (df_plot['esgoto_cobertura_total_pct'] <= faixa_esgoto[1])
+    ]
+    
+    # Tratamento para nulos em perda de água (opcional, mas seguro)
+    if 'agua_perda_distribuicao_pct' in df_plot.columns:
+        df_plot = df_plot[
+            (df_plot['agua_perda_distribuicao_pct'] >= faixa_perda[0]) & 
+            (df_plot['agua_perda_distribuicao_pct'] <= faixa_perda[1]) |
+            (df_plot['agua_perda_distribuicao_pct'].isna()) # Manter nulos ou filtrar? Filtrar é melhor para análise.
+        ]
+        # Removendo NaNs para o filtro funcionar corretamente se o usuário mexer no slider
+        if faixa_perda != (0.0, 100.0):
+             df_plot = df_plot.dropna(subset=['agua_perda_distribuicao_pct'])
+        
     # KPIs Rápidos
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1209,12 +1288,13 @@ def render_sanitation_mode(df_san):
     st.markdown("#### 🔥 Matriz de Correlação: Saneamento x Dengue")
     
     # Selecionar colunas relevantes
+    # Selecionar colunas relevantes
     corr_cols = [
         'incidencia_dengue_100k',
         'esgoto_cobertura_total_pct',
         'agua_cobertura_total_pct',
         'agua_perda_distribuicao_pct',
-        'densidade_demografica_geral'
+        'densidade_geral'
     ]
     
     # Filtrar colunas existentes
@@ -1229,7 +1309,7 @@ def render_sanitation_mode(df_san):
             'esgoto_cobertura_total_pct': 'Cobertura Esgoto',
             'agua_cobertura_total_pct': 'Cobertura Água',
             'agua_perda_distribuicao_pct': 'Perda Água',
-            'densidade_demografica_geral': 'Densidade Demográfica'
+            'densidade_geral': 'Densidade Demográfica'
         }
         corr_matrix.rename(index=rename_map, columns=rename_map, inplace=True)
         
