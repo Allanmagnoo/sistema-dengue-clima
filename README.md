@@ -132,16 +132,18 @@ O deploy contínuo é gerenciado via repositório conectado ao Dataform no conso
 
 ```
 sistema-dengue-clima/
-├── etl_project/                 # Projeto Dataform (Novo Core ETL)
-│   ├── 01-bronze/              # Declarações de fontes
-│   ├── 02-silver/              # Transformações intermediárias
-│   ├── 03-gold/                # Modelos finais
-│   ├── assertions/             # Testes de qualidade de dados
-│   ├── dataform.json           # Configuração do Dataform
-│   └── package.json            # Dependências JS
-├── src/                        # Scripts Python (Legado/Auxiliar)
-│   ├── jobs/                   # Antigos scripts ETL (Referência)
+├── src/
+│   ├── dataform/               # Projeto Dataform (Novo Core ETL)
+│   │   ├── definitions/        # Declarações SQLX
+│   │   │   ├── bronze/         # Declarações de fontes
+│   │   │   ├── silver/         # Transformações intermediárias
+│   │   │   ├── gold/           # Modelos finais
+│   │   │   └── assertions/     # Testes de qualidade de dados
+│   │   ├── dataform.json       # Configuração do Dataform
+│   │   └── package.json        # Dependências JS
+│   ├── jobs/                   # Scripts Python Legados (DuckDB/Pandas)
 │   └── app/                    # Aplicação Streamlit
+├── dags/                       # DAGs do Airflow (Cloud Composer)
 ├── docs/                       # Documentação
 └── README.md                   # Este arquivo
 ```
