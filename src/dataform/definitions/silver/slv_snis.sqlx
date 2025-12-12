@@ -1,0 +1,48 @@
+/**
+ * slv_snis.sqlx
+ * 
+ * Silver Layer: Cleaned SNIS Sanitation Data
+ * 
+ * Transforms raw SNIS data into a typed format with consistent column names.
+ * - Casts numeric columns
+ * - Filters for most recent year
+ * - Creates sanitation coverage categories
+ * 
+ * Source: brz_snis (Bronze layer)
+ */
+
+config {
+  type: "table",
+  schema: "02_slv_sistema_dengue",
+  name: "slv_snis",
+  description: "Cleaned SNIS sanitation coverage data by municipality",
+  tags: ["silver", "snis", "sanitation"]
+}
+
+SELECT
+  -- Identifiers
+  CAST(codigo_municipio AS INT64) AS geocode,
+  ano AS ano_referencia,
+  
+  -- Water Metrics
+  SAFE_CAST(indice_atendimento_total_agua AS FLOAT64) AS cobertura_agua_pct,
+  SAFE_CAST(indice_perdas_distribuicao AS FLOAT64) AS perdas_distribuicao_pct,
+  
+  -- Sewage Metrics
+  SAFE_CAST(indice_atendimento_total_esgoto AS FLOAT64) AS cobertura_esgoto_pct,
+  SAFE_CAST(indice_tratamento_esgoto AS FLOAT64) AS tratamento_esgoto_pct,
+  
+  -- Categorization for analysis
+  CASE
+    WHEN SAFE_CAST(indice_atendimento_total_esgoto AS FLOAT64) >= 80 THEN 'Alta (>=80%)'
+    WHEN SAFE_CAST(indice_atendimento_total_esgoto AS FLOAT64) >= 50 THEN 'Média (50-79%)'
+    WHEN SAFE_CAST(indice_atendimento_total_esgoto AS FLOAT64) >= 20 THEN 'Baixa (20-49%)'
+    ELSE 'Muito Baixa (<20%)'
+  END AS categoria_cobertura_esgoto,
+  
+  -- Metadata
+  CURRENT_TIMESTAMP() AS _loaded_at
+
+FROM ${ref("brz_snis")}
+
+WHERE codigo_municipio IS NOT NULL

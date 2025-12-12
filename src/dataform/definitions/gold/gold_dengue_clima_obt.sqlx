@@ -1,0 +1,132 @@
+/**
+ * gold_dengue_clima_obt.sqlx
+ * 
+ * Gold Layer: Main One Big Table (OBT) for Dengue + Climate Analysis
+ * 
+ * This is the primary analytical table combining:
+ * - Dengue case data (from slv_dengue)
+ * - Climate lags for ML features (1-4 weeks)
+ * - Case lags for time series analysis (1-4 weeks)
+ * - Moving averages
+ * 
+ * This table powers the ML model and the main dashboard.
+ * 
+ * Logic converted from: src/jobs/create_gold_dengue_clima.py
+ */
+
+config {
+  type: "table",
+  schema: "03_gold_sistema_dengue",
+  name: "gold_dengue_clima_obt",
+  description: "Main analytical table with dengue cases, climate data, and lagged features for ML",
+  tags: ["gold", "obt", "ml"],
+  
+  bigquery: {
+    partitionBy: "data_inicio_semana",
+    clusterBy: ["uf", "geocode"]
+  }
+}
+
+WITH dengue_base AS (
+  SELECT
+    geocode,
+    nome_uf,
+    uf,
+    nome_municipio,
+    data_inicio_semana,
+    semana_epidemiologica,
+    ano_epidemiologico,
+    
+    -- Create join key (YYYYWW format)
+    CAST(ano_epidemiologico * 100 + semana_epidemiologica AS INT64) AS join_key,
+    
+    -- Dengue Metrics
+    casos_notificados,
+    casos_estimados,
+    nivel_alerta,
+    populacao,
+    incidencia_100k,
+    
+    -- InfoDengue Climate (Comparison)
+    temperatura_media AS id_temp_media,
+    temperatura_min AS id_temp_min,
+    temperatura_max AS id_temp_max,
+    umidade_media AS id_umidade_media
+    
+  FROM ${ref("slv_dengue")}
+),
+
+-- Aggregate Daily INMET to Weekly
+inmet_weekly AS (
+  SELECT
+    m.geocode,
+    CAST(EXTRACT(YEAR FROM i.data_medicao) * 100 + EXTRACT(ISOWEEK FROM i.data_medicao) AS INT64) AS join_key,
+    MIN(i.data_medicao) AS data_inicio_semana_clim,
+    AVG(i.temperatura_c) AS inmet_temp_media,
+    MIN(i.temperatura_min_c) AS inmet_temp_min,
+    MAX(i.temperatura_max_c) AS inmet_temp_max,
+    SUM(i.precipitacao_mm) AS inmet_precip_tot
+  FROM ${ref("slv_inmet_diario")} i
+  INNER JOIN ${ref("slv_mapping_estacao_geocode")} m ON i.estacao_id = m.estacao_id
+  GROUP BY 1, 2
+),
+
+-- Calculate Climate Lags from Real Data
+inmet_lags AS (
+  SELECT
+    *,
+    LAG(inmet_temp_media, 1) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_temp_media_lag1,
+    LAG(inmet_temp_media, 2) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_temp_media_lag2,
+    LAG(inmet_temp_media, 3) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_temp_media_lag3,
+    LAG(inmet_temp_media, 4) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_temp_media_lag4,
+    
+    LAG(inmet_precip_tot, 1) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_precip_tot_lag1,
+    LAG(inmet_precip_tot, 2) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_precip_tot_lag2,
+    LAG(inmet_precip_tot, 3) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_precip_tot_lag3,
+    LAG(inmet_precip_tot, 4) OVER (PARTITION BY geocode ORDER BY join_key) AS inmet_precip_tot_lag4
+  FROM inmet_weekly
+),
+
+dengue_combined AS (
+  SELECT
+    d.*,
+    
+    -- Real INMET Data
+    i.inmet_temp_media,
+    i.inmet_temp_min,
+    i.inmet_temp_max,
+    i.inmet_precip_tot,
+    
+    i.inmet_temp_media_lag1,
+    i.inmet_temp_media_lag2,
+    i.inmet_temp_media_lag3,
+    i.inmet_temp_media_lag4,
+    
+    i.inmet_precip_tot_lag1,
+    i.inmet_precip_tot_lag2,
+    i.inmet_precip_tot_lag3,
+    i.inmet_precip_tot_lag4,
+    
+    -- Case Lags
+    LAG(d.casos_notificados, 1) OVER (PARTITION BY d.geocode ORDER BY d.ano_epidemiologico, d.semana_epidemiologica) AS casos_lag1,
+    LAG(d.casos_notificados, 2) OVER (PARTITION BY d.geocode ORDER BY d.ano_epidemiologico, d.semana_epidemiologica) AS casos_lag2,
+    LAG(d.casos_notificados, 3) OVER (PARTITION BY d.geocode ORDER BY d.ano_epidemiologico, d.semana_epidemiologica) AS casos_lag3,
+    LAG(d.casos_notificados, 4) OVER (PARTITION BY d.geocode ORDER BY d.ano_epidemiologico, d.semana_epidemiologica) AS casos_lag4,
+    
+    -- Moving Average
+    AVG(d.casos_notificados) OVER (
+      PARTITION BY d.geocode 
+      ORDER BY d.ano_epidemiologico, d.semana_epidemiologica 
+      ROWS BETWEEN 4 PRECEDING AND 1 PRECEDING
+    ) AS casos_media_4sem
+    
+  FROM dengue_base d
+  LEFT JOIN inmet_lags i 
+    ON d.geocode = i.geocode 
+    AND d.join_key = i.join_key
+)
+
+SELECT
+  *,
+  CURRENT_TIMESTAMP() AS _loaded_at
+FROM dengue_combined

@@ -1,0 +1,22 @@
+/**
+ * assert_brz_infodengue_not_empty.sqlx
+ * 
+ * Assertion: Bronze InfoDengue table is not empty
+ * 
+ * This assertion fails if the source table has no rows,
+ * which would indicate a data loading failure.
+ */
+
+config {
+  type: "assertion",
+  tags: ["bronze", "data-quality"],
+  description: "Ensures brz_infodengue table is not empty"
+}
+
+SELECT
+  'brz_infodengue is empty' AS error_message
+FROM (
+  SELECT COUNT(*) AS row_count
+  FROM ${ref("brz_infodengue")}
+)
+WHERE row_count = 0

@@ -1,0 +1,27 @@
+/**
+ * brz_infodengue.sqlx
+ * 
+ * Source Declaration: Raw InfoDengue data
+ * 
+ * This file declares the raw InfoDengue table from the Bronze layer
+ * as a Dataform source. This table contains weekly dengue case data
+ * for Brazilian municipalities.
+ * 
+ * Columns:
+ * - data_iniSE: Start date of epidemiological week (string)
+ * - SE: Epidemiological week number (YYYYWW format)
+ * - casos_est: Estimated cases
+ * - casos: Notified cases
+ * - municipio_geocodigo: IBGE geocode (7 digits)
+ * - pop: Population
+ * - tempmin, tempmed, tempmax: Temperature data from InfoDengue
+ * - umidmin, umidmed, umidmax: Humidity data
+ * - nivel: Alert level (1-4)
+ */
+
+config {
+  type: "declaration",
+  database: "sistema-dengue-clima",
+  schema: "01_brz_raw_sistema_dengue",
+  name: "infodengue"
+}

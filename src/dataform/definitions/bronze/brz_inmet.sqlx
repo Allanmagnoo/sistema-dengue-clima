@@ -1,0 +1,22 @@
+/**
+ * brz_inmet.sqlx
+ * 
+ * Source Declaration: Raw INMET Climate Data
+ * 
+ * This file declares the raw INMET table uploaded from CSVs.
+ * Contains daily weather station readings.
+ * 
+ * Key Columns:
+ * - data: Date of reading (YYYY/MM/DD)
+ * - hora_utc: Time of reading
+ * - estacao_id: Station identifier (A001)
+ * - precipitacao_total_horario_mm: Precipitation
+ * - temperatura_do_ar_bulbo_seco_horaria_c: Temperature
+ */
+
+config {
+  type: "declaration",
+  database: "sistema-dengue-clima",
+  schema: "01_brz_raw_sistema_dengue",
+  name: "inmet"
+}

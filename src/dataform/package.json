@@ -1,0 +1,7 @@
+{
+    "name": "etl-sistema-dengue-clima",
+    "version": "1.0.0",
+    "dependencies": {
+        "@dataform/core": "2.9.0"
+    }
+}

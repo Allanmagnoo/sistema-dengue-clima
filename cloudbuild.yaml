@@ -1,0 +1,30 @@
+steps:
+  # 1. Build Docker Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/dengue-repo/dashboard:$COMMIT_SHA', '-f', 'Dockerfile.app', '.']
+
+  # 2. Push Image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/dengue-repo/dashboard:$COMMIT_SHA']
+
+  # 3. Deploy Key Migration/Setup Tasks (Optional - e.g., DB Migrations)
+  
+  # 4. Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dengue-dashboard'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/dengue-repo/dashboard:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--allow-unauthenticated'
+      # Set environment variables for production
+      - '--set-env-vars'
+      - 'DATA_SOURCE=bigquery,GCP_PROJECT_ID=$PROJECT_ID,BQ_DATASET_ID=dengue_gold'
+
+# Save images to build logs
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/dengue-repo/dashboard:$COMMIT_SHA'

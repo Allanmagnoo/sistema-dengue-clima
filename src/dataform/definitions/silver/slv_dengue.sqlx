@@ -1,0 +1,64 @@
+/**
+ * slv_dengue.sqlx
+ * 
+ * Silver Layer: Cleaned and Enriched Dengue Data
+ * 
+ * Transforms raw InfoDengue data into a structured, typed format.
+ * - Parses date strings to DATE type
+ * - Calculates epidemiological week and year
+ * - Joins with DTB to get UF and municipality names
+ * - Renames columns to snake_case
+ * 
+ * Source: brz_infodengue (Bronze layer)
+ * Dependencies: brz_dtb_municipios (for UF/name enrichment)
+ */
+
+config {
+  type: "table",
+  schema: "02_slv_sistema_dengue",
+  name: "slv_dengue",
+  description: "Cleaned and enriched dengue case data by municipality and week",
+  tags: ["silver", "dengue"],
+  
+  bigquery: {
+    partitionBy: "data_inicio_semana",
+    clusterBy: ["uf", "geocode"]
+  }
+}
+
+SELECT
+  -- Identifiers
+  CAST(d.municipio_geocodigo AS INT64) AS geocode,
+  dtb.Nome_UF AS nome_uf,
+  CAST(dtb.UF AS STRING) AS uf,
+  dtb.Nome_Municipio AS nome_municipio,
+  
+  -- Temporal
+  PARSE_DATE('%Y-%m-%d', d.data_iniSE) AS data_inicio_semana,
+  CAST(SUBSTR(CAST(d.SE AS STRING), 5, 2) AS INT64) AS semana_epidemiologica,
+  CAST(SUBSTR(CAST(d.SE AS STRING), 1, 4) AS INT64) AS ano_epidemiologico,
+  
+  -- Dengue Metrics
+  CAST(d.casos AS INT64) AS casos_notificados,
+  CAST(d.casos_est AS FLOAT64) AS casos_estimados,
+  CAST(d.nivel AS INT64) AS nivel_alerta,
+  CAST(d.pop AS INT64) AS populacao,
+  
+  -- Incidence calculation (per 100k inhabitants)
+  SAFE_DIVIDE(CAST(d.casos AS FLOAT64) * 100000, CAST(d.pop AS FLOAT64)) AS incidencia_100k,
+  
+  -- InfoDengue Climate Data (for comparison with INMET)
+  CAST(d.tempmed AS FLOAT64) AS temperatura_media,
+  CAST(d.tempmin AS FLOAT64) AS temperatura_min,
+  CAST(d.tempmax AS FLOAT64) AS temperatura_max,
+  CAST(d.umidmed AS FLOAT64) AS umidade_media,
+  
+  -- Metadata
+  CURRENT_TIMESTAMP() AS _loaded_at
+
+FROM ${ref("brz_infodengue")} d
+LEFT JOIN ${ref("brz_dtb_municipios")} dtb
+  ON CAST(d.municipio_geocodigo AS STRING) = CAST(dtb.Codigo_Municipio_Completo AS STRING)
+
+WHERE d.municipio_geocodigo IS NOT NULL
+  AND d.SE IS NOT NULL

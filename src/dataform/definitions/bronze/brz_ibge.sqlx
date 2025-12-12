@@ -1,0 +1,16 @@
+/**
+ * brz_ibge.sqlx
+ * 
+ * Source Declaration: IBGE Data
+ * 
+ * Declares raw IBGE tables if available (e.g., population estimates).
+ * Currently a placeholder leveraging the DTB table, but can be expanded
+ * for specific census data.
+ */
+
+config {
+  type: "declaration",
+  database: "sistema-dengue-clima",
+  schema: "01_brz_raw_sistema_dengue",
+  name: "instituto_brasileiro_de_geografia_e_estatistica"
+}

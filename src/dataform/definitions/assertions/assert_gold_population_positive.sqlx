@@ -1,0 +1,23 @@
+/**
+ * assert_gold_population_positive.sqlx
+ * 
+ * Assertion: Population must be positive in Gold OBT
+ * 
+ * Business rule: Population is used as denominator for incidence calculation.
+ * Zero or negative population would cause division errors or incorrect metrics.
+ */
+
+config {
+  type: "assertion",
+  tags: ["gold", "data-quality", "business-rule"],
+  description: "Ensures population is positive in gold_dengue_clima_obt"
+}
+
+SELECT
+  geocode,
+  nome_municipio,
+  populacao,
+  'Invalid population (zero or negative)' AS error_message
+FROM ${ref("gold_dengue_clima_obt")}
+WHERE populacao IS NULL OR populacao <= 0
+LIMIT 10

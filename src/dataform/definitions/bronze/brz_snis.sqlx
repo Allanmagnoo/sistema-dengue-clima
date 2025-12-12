@@ -1,0 +1,21 @@
+/**
+ * brz_snis.sqlx
+ * 
+ * Source Declaration: SNIS Sanitation Data
+ * 
+ * This file declares the SNIS (Sistema Nacional de Informações sobre Saneamento)
+ * raw data table. Contains water and sewage coverage metrics by municipality.
+ * 
+ * Key Columns:
+ * - codigo_municipio: IBGE geocode
+ * - indice_atendimento_total_agua: Water coverage %
+ * - indice_atendimento_total_esgoto: Sewage coverage %
+ * - indice_perdas_distribuicao: Water distribution losses %
+ */
+
+config {
+  type: "declaration",
+  database: "sistema-dengue-clima",
+  schema: "01_brz_raw_sistema_dengue",
+  name: "br_mdr_snis_municipio_agua_esgoto"
+}

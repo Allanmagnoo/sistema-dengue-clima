@@ -1,0 +1,103 @@
+/**
+ * gold_painel_municipal.sqlx
+ * 
+ * Gold Layer: Municipal Dashboard Panel Data
+ * 
+ * Aggregates dengue and sanitation data at the municipal level
+ * for dashboard visualization. Includes:
+ * - Latest week's metrics
+ * - Year-to-date totals
+ * - Trend indicators
+ * - Sanitation coverage
+ * 
+ * Used by: Streamlit Dashboard, Looker Studio
+ */
+
+config {
+  type: "table",
+  schema: "03_gold_sistema_dengue",
+  name: "gold_painel_municipal",
+  description: "Aggregated municipal panel data for dashboards",
+  tags: ["gold", "dashboard", "painel"]
+}
+
+WITH latest_week AS (
+  SELECT
+    geocode,
+    nome_uf,
+    uf,
+    nome_municipio,
+    data_inicio_semana,
+    semana_epidemiologica,
+    ano_epidemiologico,
+    casos_notificados,
+    casos_estimados,
+    nivel_alerta,
+    populacao,
+    incidencia_100k,
+    
+    -- Rank to get latest week per municipality
+    ROW_NUMBER() OVER (
+      PARTITION BY geocode 
+      ORDER BY ano_epidemiologico DESC, semana_epidemiologica DESC
+    ) AS rn
+    
+  FROM ${ref("gold_dengue_clima_obt")}
+),
+
+ytd_totals AS (
+  SELECT
+    geocode,
+    ano_epidemiologico,
+    SUM(casos_notificados) AS casos_ytd,
+    AVG(incidencia_100k) AS incidencia_media_ytd,
+    MAX(nivel_alerta) AS nivel_alerta_max_ytd
+  FROM ${ref("gold_dengue_clima_obt")}
+  GROUP BY geocode, ano_epidemiologico
+),
+
+sanitation AS (
+  SELECT
+    geocode,
+    cobertura_agua_pct,
+    cobertura_esgoto_pct,
+    perdas_distribuicao_pct,
+    categoria_cobertura_esgoto
+  FROM ${ref("slv_snis")}
+)
+
+SELECT
+  l.geocode,
+  l.nome_uf,
+  l.uf,
+  l.nome_municipio,
+  l.data_inicio_semana AS ultima_semana_data,
+  l.semana_epidemiologica AS ultima_semana,
+  l.ano_epidemiologico AS ano,
+  l.casos_notificados AS casos_ultima_semana,
+  l.nivel_alerta AS nivel_alerta_atual,
+  l.populacao,
+  l.incidencia_100k AS incidencia_ultima_semana,
+  
+  -- Year-to-date
+  y.casos_ytd,
+  y.incidencia_media_ytd,
+  y.nivel_alerta_max_ytd,
+  
+  -- Sanitation
+  s.cobertura_agua_pct,
+  s.cobertura_esgoto_pct,
+  s.perdas_distribuicao_pct,
+  s.categoria_cobertura_esgoto,
+  
+  -- Metadata
+  CURRENT_TIMESTAMP() AS _loaded_at
+
+FROM latest_week l
+LEFT JOIN ytd_totals y 
+  ON l.geocode = y.geocode 
+  AND l.ano_epidemiologico = y.ano_epidemiologico
+LEFT JOIN sanitation s
+  ON l.geocode = s.geocode
+
+WHERE l.rn = 1

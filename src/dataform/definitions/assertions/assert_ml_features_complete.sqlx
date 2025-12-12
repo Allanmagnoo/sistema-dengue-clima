@@ -1,0 +1,26 @@
+/**
+ * assert_ml_features_complete.sqlx
+ * 
+ * Assertion: ML feature table has no nulls in critical columns
+ * 
+ * Critical features for the ML model must not be null.
+ * This assertion checks for completeness.
+ */
+
+config {
+  type: "assertion",
+  tags: ["gold", "ml", "data-quality"],
+  description: "Ensures ML feature table has complete critical features"
+}
+
+SELECT
+  geocode,
+  ano_epidemiologico,
+  semana_epidemiologica,
+  'Missing critical feature' AS error_message
+FROM ${ref("gold_modelo_ml_features")}
+WHERE target_casos IS NULL
+   OR casos_lag1 IS NULL
+   OR casos_lag2 IS NULL
+   OR temp_media IS NULL
+LIMIT 10

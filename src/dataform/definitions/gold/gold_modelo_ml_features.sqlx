@@ -1,0 +1,74 @@
+/**
+ * gold_modelo_ml_features.sqlx
+ * 
+ * Gold Layer: Feature Table for ML Model Training
+ * 
+ * Creates a clean feature table optimized for machine learning.
+ * - Removes rows with null target or critical features
+ * - Includes all lag features
+ * - Adds derived features (seasonality indicators)
+ * 
+ * Used by: BigQuery ML models, external training pipelines
+ */
+
+config {
+  type: "table",
+  schema: "03_gold_sistema_dengue",
+  name: "gold_modelo_ml_features",
+  description: "Clean feature table for ML model training",
+  tags: ["gold", "ml", "features"]
+}
+
+SELECT
+  -- Target
+  casos_notificados AS target_casos,
+  
+  -- Identifiers (not features, but needed for tracking)
+  geocode,
+  uf,
+  ano_epidemiologico,
+  semana_epidemiologica,
+  
+  -- Population (for normalization)
+  populacao,
+  
+  -- Lag Features (Cases)
+  casos_lag1,
+  casos_lag2,
+  casos_lag3,
+  casos_lag4,
+  casos_media_4sem,
+  
+  -- Lag Features (Climate)
+  id_temp_media AS temp_media,
+  temp_media_lag1,
+  temp_media_lag2,
+  temp_media_lag3,
+  temp_media_lag4,
+  
+  id_umidade_media AS umidade_media,
+  
+  -- Seasonality Features
+  CASE
+    WHEN semana_epidemiologica BETWEEN 1 AND 17 THEN 1  -- High season (Jan-Apr)
+    WHEN semana_epidemiologica BETWEEN 44 AND 52 THEN 1 -- High season (Nov-Dec)
+    ELSE 0
+  END AS is_alta_temporada,
+  
+  -- Cyclical encoding for week (for ML models)
+  SIN(2 * 3.14159 * semana_epidemiologica / 52) AS semana_sin,
+  COS(2 * 3.14159 * semana_epidemiologica / 52) AS semana_cos,
+  
+  -- Alert level as feature
+  nivel_alerta,
+  
+  -- Incidence as alternative target
+  incidencia_100k
+
+FROM ${ref("gold_dengue_clima_obt")}
+
+-- Filter for complete rows (no nulls in critical features)
+WHERE casos_notificados IS NOT NULL
+  AND casos_lag1 IS NOT NULL
+  AND casos_lag2 IS NOT NULL
+  AND populacao > 0

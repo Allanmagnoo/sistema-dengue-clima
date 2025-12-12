@@ -1,11 +1,11 @@
 # 🦟 Sistema Dengue-Clima: Data Lakehouse Epidemiológico
 
-> **Status:** Em Desenvolvimento (Fase de Implementação na AWS) 🚧
-> **Stack:** Python, Airflow (Astronomer), Spark, AWS (S3, Glue, Athena), Docker, PostgreSQL.
+> **Status:** Em Migração para Google Cloud Platform (GCP) �
+> **Stack:** Python, Dataform (SQLX), BigQuery, Cloud Composer (Airflow), Vertex AI, Looker Studio.
 
 ## 1. Visão do Projeto (Business Case)
 
-O **Sistema Dengue-Clima** é uma plataforma de Engenharia de Dados projetada para correlacionar dados epidemiológicos (Dengue, Zika) com dados climáticos (Chuva, Temperatura). O objetivo é fornecer uma base de dados analítica (Gold Layer) para prever surtos de arboviroses baseados em padrões meteorológicos, utilizando uma arquitetura de Lakehouse na AWS.
+O **Sistema Dengue-Clima** é uma plataforma de Engenharia de Dados projetada para correlacionar dados epidemiológicos (Dengue, Zika) com dados climáticos (Chuva, Temperatura). O objetivo é fornecer uma base de dados analítica (Gold Layer) para prever surtos de arboviroses baseados em padrões meteorológicos, utilizando uma arquitetura moderna na nuvem.
 
 **Fontes de Dados:**
 
@@ -27,229 +27,130 @@ O escopo do projeto é construir um pipeline de dados ponta a ponta, desde a ing
 
 **Objetivos:**
 * **Ingestão Automatizada:** Coletar dados de forma programada e confiável.
-* **Arquitetura Lakehouse:** Implementar as camadas Bronze, Silver e Gold em um Data Lake na AWS e localmente.
-* **Qualidade de Dados:** Garantir que os dados sejam limpos, consistentes e prontos para análise.
-* **Escalabilidade:** Construir uma solução que suporte o crescimento do volume de dados.
-* **Análise de Dados:** Permitir a correlação entre dados de dengue e clima para gerar insights.
+* **Arquitetura Lakehouse:** Implementar as camadas Bronze, Silver e Gold no BigQuery.
+* **Qualidade de Dados:** Garantir que os dados sejam limpos, consistentes e prontos para análise usando Dataform Assertions.
+* **Escalabilidade:** Utilizar serviços serverless do GCP para suportar grandes volumes de dados.
+* **Análise de Dados:** Permitir a correlação entre dados de dengue e clima para gerar insights via Looker Studio.
 
 ---
 
-## 3. Arquitetura Medallion (Bronze, Silver, Gold)
+## 3. Arquitetura (GCP)
 
-### 📊 **Bronze Layer** (Dados Brutos)
+A arquitetura do projeto foi migrada da AWS para o Google Cloud Platform para aproveitar recursos nativos de Big Data e ML.
 
-- **Formato:** CSV (InfoDengue)
-* **Estrutura:** Dados organizados por `disease`, `year`, e `geocode`
-* **Volume:** ~40.000 arquivos CSV (2015-2025)
-* **Scripts:**
-  * Ingestão via APIs (DAGs Airflow)
+### 📊 **Bronze Layer** (Raw Data)
+* **Armazenamento:** Google Cloud Storage (GCS) / BigQuery (External Tables)
+* **Formato:** JSON/CSV originais
+* **Processo:** Ingestão via Cloud Functions ou Cloud Composer (Airflow)
 
-### 🔄 **Silver Layer** (Dados Limpos e Normalizados)
+### 🔄 **Silver Layer** (Refined Data)
+* **Armazenamento:** BigQuery (Native Tables)
+* **Ferramenta de Transformação:** Dataform (SQLX)
+* **Processos:**
+    * Limpeza de dados
+    * Padronização de tipos
+    * Deduplicação
+    * Enriquecimento com dados geográficos
 
-- **Formato:** Parquet particionado
-* **Datasets:**
-  * `silver_dengue` - Dados epidemiológicos processados
-  * `silver_inmet` - Dados climáticos do INMET
-  * `silver_mapping_estacao_geocode` - Mapeamento estação meteorológica → município
-* **Scripts:**
-  * `transform_silver_dengue.py`
-  * `transform_silver_inmet.py`
-  * `create_mapping_estacao_geocode.py`
+### 🏆 **Gold Layer** (Analytics Ready)
+* **Armazenamento:** BigQuery
+* **Ferramenta de Transformação:** Dataform (SQLX)
+* **Modelos:**
+    * Marts dimensionais (Star Schema)
+    * Tabelas agregadas para dashboards
+* **ML Integration:** Vertex AI / BigQuery ML para previsões de surtos
 
-### 🏆 **Gold Layer** (Dados Analíticos - OBT)
-
-- **Formato:** Parquet particionado por UF
-* **Dataset:** `gold_dengue_clima`
-* **Características:**
-  * Join de dados de Dengue + Clima (INMET)
-  * Inclui lags de temperatura e precipitação (1-4 semanas)
-  * Pronto para análise e ML
-* **Scripts:**
-  * `create_gold_dengue_clima.py`
+### 📈 **Visualização**
+* **Ferramenta:** Looker Studio
+* **Conexão:** Direta com BigQuery
 
 ---
 
-## 4. Scripts de ETL (src/jobs/)
+## 4. Justificativa da Migração (AWS → GCP)
 
-### **Transformação de Dados:**
+A infraestrutura foi migrada da AWS para o GCP visando otimização de custos e integração facilitada de ferramentas de dados.
 
-| Script | Descrição |
-|--------|-----------|
-| `transform_bronze_rapids.py` | Transformação Bronze usando RAPIDS (GPU) |
-| `transform_silver_dengue.py` | Cria a camada Silver de dados de Dengue |
-| `transform_silver_inmet.py` | Cria a camada Silver de dados do INMET |
-| `create_mapping_estacao_geocode.py` | Mapeia estações meteorológicas para municípios |
-| `create_gold_dengue_clima.py` | Cria a camada Gold com join Dengue + Clima |
-
-### **Ingestão e Exportação:**
-
-| Script | Descrição |
-|--------|-----------|
-| `bd.py` | Carrega dados (Bronze/Silver/Gold) para PostgreSQL |
-| `upload_to_s3.py` | Upload de dados para AWS S3 |
-| `run_silver_transformations.py` | Orquestrador de transformações Silver |
-
-### **Utilitários:**
-
-| Script | Descrição |
-|--------|-----------|
-| `renaming_utils.py` | Funções para renomear arquivos Parquet |
+* **Integração Nativa:** O uso do **Dataform** integrado ao BigQuery simplifica drasticamente a gestão de dependências e transformações SQL, substituindo scripts complexos em Python/Glue.
+* **Serverless First:** O BigQuery oferece uma capacidade de processamento serverless que elimina a necessidade de gerenciamento de clusters (como no EMR/Glue), reduzindo o overhead operacional.
+* **Machine Learning:** A integração direta do BigQuery com o **Vertex AI** facilita a criação e deploy de modelos preditivos sem movimentação excessiva de dados.
+* **Histórico:** A versão anterior do projeto utilizava AWS S3, Glue e Athena. Essa experiência serviu de base para a modelagem atual, mas a stack GCP provou-se mais ágil para este caso de uso específico.
 
 ---
 
-## 5. Banco de Dados PostgreSQL
+## 5. Requisitos de Configuração (GCP)
 
-### **Configuração:**
+Para executar este projeto no ambiente GCP, são necessários:
 
-O projeto suporta ingestão de dados para PostgreSQL local via arquivo `.env`:
+1. **Conta Google Cloud:**
+   * Projeto ativo com billing habilitado.
+   * APIs habilitadas: BigQuery API, Dataform API, Cloud Storage API, Vertex AI API.
 
-```env
-DB_HOST=localhost
-DB_USER=postgres
-DB_PASSWORD=123456
-DB_NAME=postgres
-DB_PORT=5432
-```
+2. **Ferramentas Locais:**
+   * [Google Cloud SDK (gcloud)](https://cloud.google.com/sdk/docs/install)
+   * [Dataform CLI](https://cloud.google.com/dataform/docs/use-dataform-cli) (opcional, para dev local)
+   * Python 3.9+
 
-### **Tabelas Criadas:**
-
-- `bronze_infodengue` - Dados brutos do InfoDengue
-* `silver_dengue` - Dados processados de Dengue
-* `silver_silver_inmet` - Dados climáticos
-* `gold_gold_dengue_clima` - Tabela Gold (OBT)
-* `ingest_log_parquet` - Log de ingestão incremental
-
-### **Execução da Carga:**
-
-```bash
-# Carregar todas as camadas
-python src/jobs/bd.py --layers bronze,silver,gold
-
-# Carregar apenas Gold
-python src/jobs/bd.py --layers gold
-
-# Dry-run (simulação)
-python src/jobs/bd.py --dry-run --layers bronze
-```
+3. **Permissões (IAM):**
+   * O usuário ou Service Account deve ter permissões de `BigQuery Data Editor`, `BigQuery Job User` e `Dataform Editor`.
 
 ---
 
-## 6. Funcionalidades Implementadas
+## 6. Guia de Implantação
 
-- ✅ **Orquestração de DAGs com Airflow:** Pipelines de ingestão e processamento de dados.
-* ✅ **Arquitetura Medallion Local:** Estrutura de dados em camadas (Bronze, Silver, Gold) implementada localmente.
-* ✅ **Ingestão de Dados:** Conectores para as APIs do InfoDengue e INMET.
-* ✅ **Processamento de Dados:** Scripts para limpeza, transformação e enriquecimento dos dados.
-* ✅ **Containerização:** Ambiente de desenvolvimento local com Docker e Astro CLI.
-* ✅ **Integração com PostgreSQL:** Ingestão incremental de dados em banco relacional.
-* ✅ **Suporte a GPU (RAPIDS):** Transformação acelerada de dados Bronze.
+### Configuração Inicial
 
----
+1. **Autenticação:**
+   ```bash
+   gcloud auth application-default login
+   gcloud config set project SEU_PROJETO_GCP
+   ```
 
-## 7. Próximas Etapas e Tarefas Pendentes
+2. **Setup do Dataform:**
+   * Navegue até a pasta `etl_project`.
+   * Configure o arquivo `dataform.json` com o ID do seu projeto GCP.
+   * Instale as dependências:
+     ```bash
+     npm install
+     ```
 
-- **Migração para AWS:**
-  * ✅ Upload para Amazon S3 (script `upload_to_s3.py` implementado)
-  * ⏳ Adaptar os pipelines de dados para usar AWS Glue para ETL
-  * ⏳ Utilizar o Amazon Athena para consultas ad-hoc na camada Gold
-* **Melhorias nos Conectores:**
-  * ⏳ Implementar lógica de retentativas (retry) e tratamento de erros nos conectores de API
-* **Monitoramento e Alertas:**
-  * ⏳ Configurar alertas para falhas nos pipelines de dados
-* **Documentação:**
-  * ⏳ Detalhar o dicionário de dados da camada Gold
+3. **Execução do Pipeline (Manual):**
+   ```bash
+   dataform run
+   ```
 
----
+### Deploy Automático
 
-## 8. Requisitos do Sistema e Dependências
+O deploy contínuo é gerenciado via repositório conectado ao Dataform no console do GCP.
 
-- **Desenvolvimento Local:**
-  * Docker Desktop
-  * Astro CLI
-  * Python 3.9+
-  * PostgreSQL 12+
-  * (Opcional) GPU NVIDIA com CUDA para RAPIDS
-* **Produção (AWS):**
-  * Conta na AWS
-  * Serviços: S3, Glue, Athena
+1. Conecte o repositório Git ao Dataform no Console GCP.
+2. Crie um "Release Configuration" apontando para a branch `main`.
+3. Crie um "Workflow Configuration" para agendar as execuções (ex: Diário às 06:00 UTC).
 
 ---
 
-## 9. Instruções de Configuração e Execução
-
-### Ambiente de Desenvolvimento Local
-
-1. **Clone o repositório:**
-
-    ```bash
-    git clone https://github.com/Allanmagnoo/sistema-dengue-clima.git
-    cd sistema-dengue-clima
-    ```
-
-2. **Configure as variáveis de ambiente (.env):**
-
-    ```bash
-    cp .env.example .env
-    # Edite o arquivo .env com suas credenciais
-    ```
-
-3. **Inicie o Ambiente Local com Airflow:**
-
-    ```bash
-    astro dev start
-    ```
-
-    Acesse a interface do Airflow em: `http://localhost:8080` (usuário: `admin`, senha: `admin`).
-
-4. **Instale as dependências locais para desenvolvimento:**
-
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # ou .venv\Scripts\activate no Windows
-    pip install -r requirements.txt
-    ```
-
-5. **Execute as transformações:**
-
-    ```bash
-    # Criar camada Silver
-    python src/jobs/run_silver_transformations.py
-    
-    # Criar camada Gold
-    python src/jobs/create_gold_dengue_clima.py
-    
-    # Carregar para PostgreSQL
-    python src/jobs/bd.py --layers bronze,silver,gold
-    ```
-
----
-
-## 10. Estrutura do Projeto
+## 7. Estrutura do Projeto (Atualizada)
 
 ```
 sistema-dengue-clima/
-├── dags/                      # DAGs do Airflow
-├── data/                      # Camadas de dados (Medallion)
-│   ├── bronze/               # Dados brutos
-│   ├── silver/               # Dados limpos
-│   └── gold/                 # Dados analíticos
-├── src/jobs/                 # Scripts ETL
-│   ├── bd.py                 # Carga PostgreSQL
-│   ├── create_gold_dengue_clima.py
-│   ├── transform_silver_*.py
-│   └── upload_to_s3.py
-├── docs/                     # Documentação
-├── tests/                    # Testes unitários
-├── .env                      # Configurações (não versionado)
-├── docker-compose.yml        # Configuração Docker
-├── requirements.txt          # Dependências Python
-└── README.md
+├── etl_project/                 # Projeto Dataform (Novo Core ETL)
+│   ├── 01-bronze/              # Declarações de fontes
+│   ├── 02-silver/              # Transformações intermediárias
+│   ├── 03-gold/                # Modelos finais
+│   ├── assertions/             # Testes de qualidade de dados
+│   ├── dataform.json           # Configuração do Dataform
+│   └── package.json            # Dependências JS
+├── src/                        # Scripts Python (Legado/Auxiliar)
+│   ├── jobs/                   # Antigos scripts ETL (Referência)
+│   └── app/                    # Aplicação Streamlit
+├── docs/                       # Documentação
+└── README.md                   # Este arquivo
 ```
 
 ---
 
-## 11. Equipe e Contatos
+## 8. Equipe e Contatos
 
-- **Desenvolvedor Principal:** Allan Magno
+* **Desenvolvedor Principal:** Allan Magno
 * **Contato:** <allanmagno@gmail.com>
 * **GitHub:** [https://github.com/Allanmagnoo](https://github.com/Allanmagnoo)
+* **Suporte GCP:** Para questões relacionadas à infraestrutura GCP, abra uma issue neste repositório com a tag `gcp-infra`.

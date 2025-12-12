@@ -1,0 +1,53 @@
+/**
+ * slv_mapping_estacao_geocode.sqlx
+ * 
+ * Silver Layer: Weather Station to Municipality Mapping
+ * 
+ * Creates a lookup table mapping INMET weather stations to 
+ * their nearest municipality geocodes. This is required to join
+ * weather data with dengue data at the municipality level.
+ * 
+ * Note: This is a static/seed table. In a full implementation,
+ * this would be loaded from a reference file or calculated using
+ * geospatial functions (ST_DISTANCE).
+ * 
+ * For now, this uses a simplified mapping based on known station locations.
+ */
+
+config {
+  type: "table",
+  schema: "02_slv_sistema_dengue",
+  name: "slv_mapping_estacao_geocode",
+  description: "Mapping of INMET weather stations to municipality geocodes",
+  tags: ["silver", "mapping", "reference"]
+}
+
+-- Sample mapping data (to be expanded)
+-- In production, this would come from a proper reference table or geospatial calculation
+
+SELECT 'A001' AS estacao_id, 5300108 AS geocode, 'BRASILIA' AS nome_municipio UNION ALL
+SELECT 'A002', 5208707, 'GOIANIA' UNION ALL
+SELECT 'A101', 1302603, 'MANAUS' UNION ALL
+SELECT 'A201', 1501402, 'BELEM' UNION ALL
+SELECT 'A301', 2304400, 'FORTALEZA' UNION ALL
+SELECT 'A303', 2704302, 'MACEIO' UNION ALL
+SELECT 'A304', 2408102, 'NATAL' UNION ALL
+SELECT 'A305', 2304400, 'FORTALEZA' UNION ALL
+SELECT 'A307', 2611101, 'PETROLINA' UNION ALL
+SELECT 'A308', 2207702, 'PARNAIBA' UNION ALL
+SELECT 'A310', 2501104, 'AREIA' UNION ALL
+SELECT 'A312', 2211001, 'TERESINA' UNION ALL
+SELECT 'A320', 2507507, 'JOAO PESSOA' UNION ALL
+SELECT 'A401', 2927408, 'SALVADOR' UNION ALL
+SELECT 'A409', 2800308, 'ARACAJU' UNION ALL
+SELECT 'A502', 3103504, 'BARBACENA' UNION ALL
+SELECT 'A521', 3106200, 'BELO HORIZONTE' UNION ALL
+SELECT 'A601', 3304557, 'RIO DE JANEIRO' UNION ALL
+SELECT 'A612', 3205309, 'VITORIA' UNION ALL
+SELECT 'A701', 3550308, 'SAO PAULO' UNION ALL
+SELECT 'A702', 5002704, 'CAMPO GRANDE' UNION ALL
+SELECT 'A801', 4314902, 'PORTO ALEGRE' UNION ALL
+SELECT 'A807', 4106902, 'CURITIBA' UNION ALL
+SELECT 'A806', 4205407, 'FLORIANOPOLIS' UNION ALL
+SELECT 'A901', 5103403, 'CUIABA' UNION ALL
+SELECT 'A925', 1100205, 'PORTO VELHO'

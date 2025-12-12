@@ -1,0 +1,24 @@
+/**
+ * assert_gold_no_negative_cases.sqlx
+ * 
+ * Assertion: No negative case counts in Gold OBT
+ * 
+ * Business rule: Case counts must always be >= 0.
+ * Negative values indicate a data quality issue upstream.
+ */
+
+config {
+  type: "assertion",
+  tags: ["gold", "data-quality", "business-rule"],
+  description: "Ensures no negative case counts in gold_dengue_clima_obt"
+}
+
+SELECT
+  geocode,
+  ano_epidemiologico,
+  semana_epidemiologica,
+  casos_notificados,
+  'Negative case count detected' AS error_message
+FROM ${ref("gold_dengue_clima_obt")}
+WHERE casos_notificados < 0
+LIMIT 10

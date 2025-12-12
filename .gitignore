@@ -74,3 +74,7 @@ unittests.cfg
 .cache/
 
 !firebase.json
+
+# Dataform config exception
+!src/dataform/*.json
+!src/dataform/**/*.json

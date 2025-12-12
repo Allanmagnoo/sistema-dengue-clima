@@ -1,0 +1,25 @@
+/**
+ * assert_slv_dengue_geocode_valid.sqlx
+ * 
+ * Assertion: All geocodes in slv_dengue are valid
+ * 
+ * Validates that:
+ * - geocode is not null
+ * - geocode is 7 digits (IBGE standard)
+ * - geocode is numeric
+ */
+
+config {
+  type: "assertion",
+  tags: ["silver", "data-quality", "geocode"],
+  description: "Ensures all geocodes in slv_dengue are valid 7-digit IBGE codes"
+}
+
+SELECT
+  geocode,
+  'Invalid geocode in slv_dengue' AS error_message
+FROM ${ref("slv_dengue")}
+WHERE geocode IS NULL
+   OR geocode < 1100000  -- Minimum valid geocode (Rondônia)
+   OR geocode > 5399999  -- Maximum valid geocode (Goiás)
+LIMIT 10

@@ -1,0 +1,7 @@
+{
+    "defaultSchema": "02_slv_sistema_dengue",
+    "defaultDatabase": "sistema-dengue-clima",
+    "assertionSchema": "dataform_assertions",
+    "warehouse": "bigquery",
+    "defaultLocation": "US"
+}

@@ -1,0 +1,61 @@
+/**
+ * slv_inmet_diario.sqlx
+ * 
+ * Silver Layer: Cleaned Daily INMET Climate Data
+ * 
+ * Transforms raw INMET data:
+ * - Parses dates (YYYY/MM/DD -> DATE)
+ * - Casts numeric columns (handling format)
+ * - Standardizes column names
+ * - Extracts station metadata
+ * 
+ * Source: brz_inmet
+ */
+
+config {
+  type: "table",
+  schema: "02_slv_sistema_dengue",
+  name: "slv_inmet_diario",
+  description: "Cleaned daily climate data from INMET stations",
+  tags: ["silver", "climate", "inmet"],
+  
+  bigquery: {
+    partitionBy: "data_medicao",
+    clusterBy: ["estacao_id", "uf"]
+  }
+}
+
+SELECT
+  -- Identifiers
+  estacao_id,
+  estacao_nome,
+  uf,
+  regiao,
+  
+  -- Temporal
+  PARSE_DATE('%Y/%m/%d', data) AS data_medicao,
+  hora_utc,
+  EXTRACT(YEAR FROM PARSE_DATE('%Y/%m/%d', data)) AS ano,
+  EXTRACT(MONTH FROM PARSE_DATE('%Y/%m/%d', data)) AS mes,
+  
+  -- Temperature (C)
+  SAFE_CAST(temperatura_do_ar_bulbo_seco_horaria_c AS FLOAT64) AS temperatura_c,
+  SAFE_CAST(temperatura_maxima_na_hora_ant_aut_c AS FLOAT64) AS temperatura_max_c,
+  SAFE_CAST(temperatura_minima_na_hora_ant_aut_c AS FLOAT64) AS temperatura_min_c,
+  
+  -- Precipitation (mm)
+  SAFE_CAST(precipitacao_total_horario_mm AS FLOAT64) AS precipitacao_mm,
+  
+  -- Humidity (%)
+  SAFE_CAST(umidade_relativa_do_ar_horaria_pct AS FLOAT64) AS umidade_relativa_pct,
+  
+  -- Wind
+  SAFE_CAST(vento_velocidade_horaria_m_s AS FLOAT64) AS vento_velocidade_ms,
+  
+  -- Metadata
+  current_timestamp() AS _loaded_at
+
+FROM ${ref("brz_inmet")}
+
+WHERE data IS NOT NULL
+  AND estacao_id IS NOT NULL

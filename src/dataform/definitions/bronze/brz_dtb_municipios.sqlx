@@ -1,0 +1,22 @@
+/**
+ * brz_dtb_municipios.sqlx
+ * 
+ * Source Declaration: IBGE DTB (Divisão Territorial Brasileira)
+ * 
+ * This file declares the DTB 2024 table containing municipality metadata.
+ * Used to enrich dengue data with UF codes and municipality names.
+ * 
+ * Key Columns:
+ * - UF: State code (2 digits)
+ * - Nome_UF: State name
+ * - Município: Municipality code (5 digits within UF)
+ * - Código Município Completo: Full IBGE geocode (7 digits)
+ * - Nome_Município: Municipality name
+ */
+
+config {
+  type: "declaration",
+  database: "sistema-dengue-clima",
+  schema: "01_brz_raw_sistema_dengue",
+  name: "relatorio_dtb_brasil_2024_municipios"
+}
