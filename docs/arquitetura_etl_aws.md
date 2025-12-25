@@ -106,6 +106,10 @@ O diagrama acima ilustra o fluxo completo de dados através das três camadas (B
 | Coluna Bronze | Índice | Tipo Bronze | Coluna Silver | Tipo Silver | Transformação Aplicada |
 |:---|:---|:---|:---|:---|:---|
 | `column00` | 0 | `VARCHAR` | `data_medicao` | `DATE` | `try_cast(strptime(column00, '%Y/%m/%d') as DATE)` |
+| `column01` | 1 | `VARCHAR` | `hora_utc` | `INTEGER` | `try_cast(substring(column01, 1, 4) as INTEGER)` |
+| `column02` | 2 | `VARCHAR` | `precipitacao_mm` | `DOUBLE` | `try_cast(replace(column02, ',', '.') as DOUBLE)` |
+| `column07` | 7 | `VARCHAR` | `temperatura_c` | `DOUBLE` | `try_cast(replace(column07, ',', '.') as DOUBLE)` |
+| `column15` | 15 | `VARCHAR` | `umidade_relativa_percent` | `DOUBLE` | `try_cast(replace(column15, ',', '.') as DOUBLE)` |
 
 * Cada arquivo contém dados horários de uma estação para um ano completo
 
